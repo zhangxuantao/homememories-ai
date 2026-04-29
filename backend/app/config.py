@@ -6,11 +6,25 @@ load_dotenv()
 
 
 class Settings:
-    media_root: str = os.getenv("MEDIA_ROOT", "./media")
-    data_root: str = os.getenv("DATA_ROOT", "./data")
-    thumbnail_size: int = int(os.getenv("THUMBNAIL_SIZE", "300"))
-    host: str = os.getenv("HOST", "0.0.0.0")
-    port: int = int(os.getenv("PORT", "8501"))
+    @property
+    def media_root(self) -> str:
+        return os.getenv("MEDIA_ROOT", "./media")
+
+    @property
+    def data_root(self) -> str:
+        return os.getenv("DATA_ROOT", "./data")
+
+    @property
+    def thumbnail_size(self) -> int:
+        return int(os.getenv("THUMBNAIL_SIZE", "300"))
+
+    @property
+    def host(self) -> str:
+        return os.getenv("HOST", "0.0.0.0")
+
+    @property
+    def port(self) -> int:
+        return int(os.getenv("PORT", "8501"))
 
     @property
     def db_path(self) -> str:

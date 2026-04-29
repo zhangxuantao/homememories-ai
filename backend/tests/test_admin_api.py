@@ -6,7 +6,7 @@ from app.database import get_connection, init_db
 
 @pytest.fixture
 def admin_app(tmp_path, monkeypatch):
-    db_path = str(tmp_path / "test.db")
+    db_path = str(tmp_path / "metadata.db")
     monkeypatch.setenv("MEDIA_ROOT", str(tmp_path / "media"))
     monkeypatch.setenv("DATA_ROOT", str(tmp_path))
     monkeypatch.setenv("THUMBNAIL_SIZE", "300")

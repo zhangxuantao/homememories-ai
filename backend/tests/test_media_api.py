@@ -6,7 +6,7 @@ from app.database import get_connection, init_db
 
 @pytest.fixture
 def seeded_media_app(tmp_path, monkeypatch):
-    db_path = str(tmp_path / "test.db")
+    db_path = str(tmp_path / "metadata.db")
     monkeypatch.setenv("MEDIA_ROOT", str(tmp_path / "media"))
     monkeypatch.setenv("DATA_ROOT", str(tmp_path))
     monkeypatch.setenv("THUMBNAIL_SIZE", "300")
@@ -75,12 +75,12 @@ async def test_delete_media(seeded_media_app):
     transport = ASGITransport(app=seeded_media_app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.delete("/api/media/1")
-    assert resp.status_code == 200
-    assert resp.json() == {"deleted": True}
+        assert resp.status_code == 200
+        assert resp.json() == {"deleted": True}
 
-    # Verify it's gone
-    resp2 = await client.get("/api/media/1")
-    assert resp2.status_code == 404
+        # Verify it's gone
+        resp2 = await client.get("/api/media/1")
+        assert resp2.status_code == 404
 
 
 @pytest.mark.asyncio
