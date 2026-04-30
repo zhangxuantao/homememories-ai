@@ -13,6 +13,7 @@ from app.services.quality_service import (
     get_duplicate_pairs,
 )
 from app.services.media_service import delete_media
+from app.services.face_service import start_face_detection
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -81,3 +82,13 @@ def delete_blurry_media(ids: list[int]):
         success = delete_media(media_id)
         deleted.append({"id": media_id, "deleted": success})
     return {"deleted": deleted}
+
+
+# ── Face Detection ──────────────────────────────────────────────────────────
+
+
+@router.post("/faces/detect")
+def start_face_detection_endpoint():
+    job_id = start_face_detection()
+    from app.services.scan_service import get_job_status
+    return get_job_status(job_id).model_dump()

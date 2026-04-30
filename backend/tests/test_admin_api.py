@@ -97,3 +97,26 @@ async def test_start_embedding_generation(admin_app):
     data = resp.json()
     assert "job_id" in data
     assert data["status"] in ("pending", "running")
+
+
+@pytest.mark.asyncio
+async def test_start_face_detection(admin_app):
+    """POST /api/admin/faces/detect starts a face detection job and returns job status."""
+
+    def mock_start_face_detection():
+        from app.services.scan_service import JobTracker
+        tracker = JobTracker()
+        job_id = tracker.create(total=0, processed=0, stage="face_detection")
+        return job_id
+
+    with patch(
+        "app.routers.admin.start_face_detection",
+        side_effect=mock_start_face_detection,
+    ):
+        transport = ASGITransport(app=admin_app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/admin/faces/detect")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "job_id" in data
+    assert data["status"] in ("pending", "running")
