@@ -12,26 +12,43 @@ class EmbeddingPipeline:
     _lock = threading.Lock()
     dim: int = 512
 
-    def __init__(self):
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._initialized = False
+        return cls._instance
+
+    def _ensure_loaded(self):
+        if self._initialized:
+            return
         model_name = "OFA-Sys/chinese-clip-vit-base-patch16"
         self.model = ChineseCLIPModel.from_pretrained(model_name)
         self.processor = ChineseCLIPProcessor.from_pretrained(model_name)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model.to(self.device).eval()
+        self._initialized = True
 
     @classmethod
     def get_instance(cls) -> "EmbeddingPipeline":
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = cls()
-        return cls._instance
+        inst = cls()
+        inst._ensure_loaded()
+        return inst
 
     def embed_images(self, image_paths: list[str], batch_size: int = 32) -> np.ndarray:
+        self._ensure_loaded()
         all_embeddings = []
         for i in range(0, len(image_paths), batch_size):
             batch_paths = image_paths[i:i + batch_size]
-            images = [Image.open(p).convert("RGB") for p in batch_paths]
+            images = []
+            for p in batch_paths:
+                try:
+                    images.append(Image.open(p).convert("RGB"))
+                except Exception:
+                    continue
+            if not images:
+                continue
             inputs = self.processor(images=images, return_tensors="pt", padding=True)
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
             with torch.no_grad():
@@ -46,6 +63,7 @@ class EmbeddingPipeline:
         return np.concatenate(all_embeddings, axis=0) if all_embeddings else np.empty((0, 512), dtype=np.float32)
 
     def embed_text(self, texts: list[str]) -> np.ndarray:
+        self._ensure_loaded()
         inputs = self.processor(text=texts, return_tensors="pt", padding=True)
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         with torch.no_grad():
