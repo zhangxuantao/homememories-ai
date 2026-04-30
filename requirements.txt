@@ -1,0 +1,28 @@
+# Core AI Framework
+torch==2.2.0+cu121
+torchvision==0.17.0+cu121
+transformers==4.38.0
+pillow==10.2.0
+exifread==3.0.1
+
+# Video & Image Processing
+opencv-python==4.9.0.80
+scikit-image==0.22.0
+imagehash==4.3.1
+
+# Face Recognition
+insightface==0.7.3
+onnxruntime-gpu==1.17.0
+
+# Vector Search
+faiss-gpu==1.8.0.post1
+
+# Web UI
+streamlit==1.32.0
+
+# Utilities
+numpy==1.26.4
+tqdm==4.66.2
+python-dotenv==1.0.1
+scikit-learn==1.4.0
+huggingface-hub==0.21.4
