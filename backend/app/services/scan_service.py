@@ -3,12 +3,13 @@ import uuid
 import os
 import threading
 from app.database import get_connection
-from app.models import ScanResult, SystemStats
+from app.models import ScanResult, JobStatus, SystemStats
 from app.scanner.scanner import scan_directory
 from app.config import settings
 
 
-class ScanJobTracker:
+class JobTracker:
+    """Generic singleton job tracker used by scan, embeddings, face, and quality jobs."""
     _instance = None
     _lock = threading.Lock()
 
@@ -20,15 +21,13 @@ class ScanJobTracker:
                     cls._instance._jobs = {}
         return cls._instance
 
-    def create(self) -> str:
+    def create(self, **extra_fields) -> str:
         job_id = str(uuid.uuid4())
         self._jobs[job_id] = {
             "status": "pending",
             "progress": 0.0,
-            "total": 0,
-            "new": 0,
-            "skipped": 0,
             "error": None,
+            **extra_fields,
         }
         return job_id
 
@@ -40,9 +39,13 @@ class ScanJobTracker:
         return self._jobs.get(job_id)
 
 
+# Backward compatibility alias
+ScanJobTracker = JobTracker
+
+
 def start_scan_job() -> str:
-    tracker = ScanJobTracker()
-    job_id = tracker.create()
+    tracker = JobTracker()
+    job_id = tracker.create(total=0, new=0, skipped=0)
 
     def _run_scan():
         tracker.update(job_id, status="running")
@@ -65,11 +68,19 @@ def start_scan_job() -> str:
 
 
 def get_scan_status(job_id: str) -> ScanResult | None:
-    tracker = ScanJobTracker()
+    tracker = JobTracker()
     job = tracker.get(job_id)
     if job is None:
         return None
     return ScanResult(job_id=job_id, **job)
+
+
+def get_job_status(job_id: str) -> JobStatus | None:
+    tracker = JobTracker()
+    job = tracker.get(job_id)
+    if job is None:
+        return None
+    return JobStatus(job_id=job_id, **job)
 
 
 def get_system_stats(db_path: str | None = None) -> SystemStats:

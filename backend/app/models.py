@@ -67,3 +67,21 @@ class SearchRequest(BaseModel):
 class SearchResponse(BaseModel):
     results: list[MediaItem]
     next_cursor: str | None = None
+
+
+class JobStatus(BaseModel):
+    job_id: str
+    status: str  # "pending" | "running" | "completed" | "failed"
+    progress: float = 0.0  # 0-100
+    error: str | None = None
+
+
+class FaceCluster(BaseModel):
+    id: int
+    label: str | None = None
+    cover_face_id: int | None = None
+    photo_count: int = 0
+
+    @classmethod
+    def from_row(cls, row):
+        return cls(**dict(row))

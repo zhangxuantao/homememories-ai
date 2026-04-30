@@ -34,5 +34,9 @@ class Settings:
     def thumb_dir(self) -> str:
         return os.path.join(self.data_root, "thumbs")
 
+    @property
+    def faiss_dir(self) -> str:
+        return os.path.join(self.data_root, "faiss")
+
 
 settings = Settings()
