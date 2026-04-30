@@ -3,6 +3,7 @@ from fastapi import APIRouter, Query, HTTPException
 from app.services.scan_service import (
     start_scan_job,
     get_scan_status,
+    get_job_status,
     get_system_stats,
 )
 from app.services.search_service import generate_embeddings
@@ -41,7 +42,6 @@ def system_stats():
 @router.post("/embeddings/generate")
 def start_embedding_generation():
     job_id = generate_embeddings()
-    from app.services.scan_service import get_job_status
     status = get_job_status(job_id)
     return status.model_dump()
 
@@ -52,14 +52,12 @@ def start_embedding_generation():
 @router.post("/cleanup/blurry/check")
 def start_blur_check():
     job_id = run_blur_check()
-    from app.services.scan_service import get_job_status
     return get_job_status(job_id).model_dump()
 
 
 @router.post("/cleanup/duplicates/check")
 def start_duplicate_check():
     job_id = run_duplicate_check()
-    from app.services.scan_service import get_job_status
     return get_job_status(job_id).model_dump()
 
 
@@ -90,5 +88,12 @@ def delete_blurry_media(ids: list[int]):
 @router.post("/faces/detect")
 def start_face_detection_endpoint():
     job_id = start_face_detection()
-    from app.services.scan_service import get_job_status
     return get_job_status(job_id).model_dump()
+
+
+@router.get("/job/{job_id}/status")
+def job_status(job_id: str):
+    result = get_job_status(job_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return result.model_dump()
