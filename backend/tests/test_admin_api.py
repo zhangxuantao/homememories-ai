@@ -1,5 +1,6 @@
 # backend/tests/test_admin_api.py
 import pytest
+from unittest.mock import patch
 from httpx import AsyncClient, ASGITransport
 from app.database import get_connection, init_db
 
@@ -73,3 +74,26 @@ async def test_get_system_stats(admin_app):
     assert data["image_count"] == 1
     assert data["video_count"] == 1
     assert data["db_size_bytes"] > 0
+
+
+@pytest.mark.asyncio
+async def test_start_embedding_generation(admin_app):
+    """POST /api/admin/embeddings/generate starts an embedding job and returns job status."""
+
+    def mock_generate_embeddings():
+        from app.services.scan_service import JobTracker
+        tracker = JobTracker()
+        job_id = tracker.create(total=0, processed=0, stage="embedding")
+        return job_id
+
+    with patch(
+        "app.routers.admin.generate_embeddings",
+        side_effect=mock_generate_embeddings,
+    ):
+        transport = ASGITransport(app=admin_app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/admin/embeddings/generate")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "job_id" in data
+    assert data["status"] in ("pending", "running")

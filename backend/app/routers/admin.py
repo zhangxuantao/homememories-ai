@@ -5,6 +5,7 @@ from app.services.scan_service import (
     get_scan_status,
     get_system_stats,
 )
+from app.services.search_service import generate_embeddings
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -27,3 +28,11 @@ def scan_status(job_id: str = Query(...)):
 @router.get("/stats")
 def system_stats():
     return get_system_stats().model_dump()
+
+
+@router.post("/embeddings/generate")
+def start_embedding_generation():
+    job_id = generate_embeddings()
+    from app.services.scan_service import get_job_status
+    status = get_job_status(job_id)
+    return status.model_dump()
