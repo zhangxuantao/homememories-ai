@@ -221,5 +221,14 @@ __marimo__/
 .superpowers/
 .worktrees/
 
+# Node
+node_modules/
+frontend/dist/
+
+# Generated data
+backend/data/thumbs/
+backend/data/faiss/
+/data/
+
 # Claude
 .claude/
