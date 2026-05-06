@@ -27,9 +27,13 @@ LOCATIONS = [
 ]
 
 
-def _gen_svg_thumb(filename: str, r: int, g: int, b: int) -> str:
-    os.makedirs(THUMB_DIR, exist_ok=True)
-    path = os.path.join(THUMB_DIR, filename)
+MEDIA_DIR = settings.media_root
+
+
+def _gen_svg(filename: str, out_dir: str, r: int, g: int, b: int) -> str:
+    """Generate a colored SVG file in out_dir and return the filename."""
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, filename)
     svg = (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">'
         f'<rect width="300" height="300" fill="rgb({r},{g},{b})"/>'
@@ -76,9 +80,11 @@ def seed(reset: bool = False):
 
         r, g, b = random.randint(180, 240), random.randint(160, 220), random.randint(170, 230)
         thumb_filename = f"mock_{i:03d}.svg"
-        _gen_svg_thumb(thumb_filename, r, g, b)
+        # Save to both thumbnails directory and media directory (for original)
+        _gen_svg(thumb_filename, THUMB_DIR, r, g, b)
+        _gen_svg(thumb_filename, MEDIA_DIR, r, g, b)
 
-        filename = f"IMG_{20230101 + i:04d}.jpg"
+        # Use the SVG filename as both path and thumbnail_path so both work
         checksum = hashlib.sha256(f"mock_{i}".encode()).hexdigest()
         dhash = hashlib.md5(f"dhash_{i}".encode()).hexdigest()[:16]
 
@@ -88,8 +94,8 @@ def seed(reset: bool = False):
                dhash, checksum)
                VALUES (?, ?, 'image', ?, ?, ?, ?, ?, ?, NULL, 0, NULL, ?, ?)""",
             (
-                f"C:/Photos/Mock/{filename}",
-                filename,
+                thumb_filename,
+                f"mock_{i:03d}",
                 w, h,
                 random.randint(2_000_000, 15_000_000),
                 date_taken,

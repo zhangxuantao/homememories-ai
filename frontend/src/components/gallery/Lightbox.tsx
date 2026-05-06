@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { MediaItem } from '../../api/client';
 import { api } from '../../api/client';
@@ -11,6 +11,23 @@ interface LightboxProps {
 }
 
 export default function Lightbox({ item, onClose, onPrev, onNext }: LightboxProps) {
+  const [displayUrl, setDisplayUrl] = useState(() => api.originalUrl(item.path));
+  const [useThumb, setUseThumb] = useState(false);
+
+  // Reset when item changes
+  useEffect(() => {
+    setDisplayUrl(api.originalUrl(item.path));
+    setUseThumb(false);
+  }, [item.id]);
+
+  const handleImgError = () => {
+    const thumb = api.thumbUrl(item.thumbnail_path);
+    if (thumb && !useThumb) {
+      setDisplayUrl(thumb);
+      setUseThumb(true);
+    }
+  };
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -25,8 +42,6 @@ export default function Lightbox({ item, onClose, onPrev, onNext }: LightboxProp
     };
   }, [onClose, onPrev, onNext]);
 
-  const imageUrl = api.originalUrl(item.path);
-
   return (
     <AnimatePresence>
       <motion.div
@@ -36,11 +51,10 @@ export default function Lightbox({ item, onClose, onPrev, onNext }: LightboxProp
         className="fixed inset-0 z-[100] bg-black/90 flex flex-col"
         onClick={onClose}
       >
-        {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3 text-white text-sm">
           <button onClick={onClose} className="hover:text-primary transition-colors">✕ 关闭</button>
           <a
-            href={imageUrl}
+            href={displayUrl}
             download={item.filename}
             className="hover:text-primary transition-colors"
             onClick={(e) => e.stopPropagation()}
@@ -49,7 +63,6 @@ export default function Lightbox({ item, onClose, onPrev, onNext }: LightboxProp
           </a>
         </div>
 
-        {/* Image area */}
         <div className="flex-1 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
           {onPrev && (
             <button
@@ -61,10 +74,11 @@ export default function Lightbox({ item, onClose, onPrev, onNext }: LightboxProp
           )}
 
           <img
-            src={imageUrl}
+            src={displayUrl}
             alt={item.filename}
             className="max-w-full max-h-[80vh] object-contain select-none"
             draggable={false}
+            onError={handleImgError}
           />
 
           {onNext && (
@@ -77,13 +91,13 @@ export default function Lightbox({ item, onClose, onPrev, onNext }: LightboxProp
           )}
         </div>
 
-        {/* Bottom info bar */}
         <div className="px-4 py-3 text-white text-sm bg-gradient-to-t from-black/60 to-transparent">
           {item.date_taken && (
             <p className="text-white/80">{item.date_taken.slice(0, 10)}</p>
           )}
           <p className="text-white/50 text-xs mt-0.5">
             {item.width}×{item.height} · {item.filename}
+            {useThumb && ' (缩略图)'}
           </p>
         </div>
       </motion.div>
