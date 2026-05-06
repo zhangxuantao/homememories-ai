@@ -63,7 +63,7 @@ def seed(reset: bool = False):
         conn.close()
         return
 
-    base_date = datetime(2024, 1, 1)
+    base_date = datetime(2023, 1, 1)
     media_ids = []
 
     for i in range(50):
