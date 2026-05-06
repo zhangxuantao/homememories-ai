@@ -15,6 +15,7 @@ export default function MobileNav() {
         <NavLink
           key={tab.to}
           to={tab.to}
+          end={tab.to === '/'}
           className={({ isActive }) =>
             `flex flex-col items-center gap-0.5 text-[10px] transition-colors ${
               isActive ? 'text-primary font-semibold' : 'text-text-light'
