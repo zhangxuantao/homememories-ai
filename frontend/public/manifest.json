@@ -1,0 +1,19 @@
+{
+  "name": "HomeMemories AI - 家庭回忆",
+  "short_name": "HomeMemories",
+  "description": "私人家庭照片管理系统 — 让家庭回忆更智能",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f0c6c6",
+  "orientation": "any",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
