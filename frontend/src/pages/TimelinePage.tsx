@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTimelineYears, useEvents, useEventMedia } from '../hooks/useTimeline';
 import type { TimelineEvent } from '../api/client';
+import { SkeletonCard } from '../components/ui/Skeleton';
 import YearPills from '../components/timeline/YearPills';
 import EventStrip from '../components/timeline/EventStrip';
 
@@ -28,8 +29,10 @@ export default function TimelinePage() {
           <YearPills years={years} selectedYear={selectedYear} onSelect={setSelectedYear} />
 
           {eventsLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="mt-4 space-y-3">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
             </div>
           ) : events.length === 0 ? (
             <p className="text-center text-text-light py-12">这一年还没有照片哦</p>

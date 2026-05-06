@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import MobileNav from './components/layout/MobileNav';
 import DesktopRail from './components/layout/DesktopRail';
 
@@ -18,21 +19,45 @@ function PageLoader() {
   );
 }
 
+const pageVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -12 },
+};
+
+function AnimatedPage({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={{ duration: 0.2 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 export default function App() {
+  const location = useLocation();
+
   return (
     <div className="min-h-screen bg-white">
       <DesktopRail />
       <main className="md:ml-14 pb-14 md:pb-0">
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/timeline" element={<TimelinePage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/people" element={<PeoplePage />} />
-            <Route path="/photo/:id" element={<PhotoDetail />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Routes>
-        </Suspense>
+        <AnimatePresence mode="wait">
+          <Suspense fallback={<PageLoader />}>
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<AnimatedPage><HomePage /></AnimatedPage>} />
+              <Route path="/timeline" element={<AnimatedPage><TimelinePage /></AnimatedPage>} />
+              <Route path="/search" element={<AnimatedPage><SearchPage /></AnimatedPage>} />
+              <Route path="/people" element={<AnimatedPage><PeoplePage /></AnimatedPage>} />
+              <Route path="/photo/:id" element={<PhotoDetail />} />
+              <Route path="/settings" element={<AnimatedPage><SettingsPage /></AnimatedPage>} />
+            </Routes>
+          </Suspense>
+        </AnimatePresence>
       </main>
       <MobileNav />
     </div>
