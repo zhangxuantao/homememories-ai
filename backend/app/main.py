@@ -11,6 +11,7 @@ from app.database import init_db
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs(settings.data_root, exist_ok=True)
+    os.makedirs(settings.media_root, exist_ok=True)
     os.makedirs(settings.thumb_dir, exist_ok=True)
     os.makedirs(settings.faiss_dir, exist_ok=True)
     os.makedirs(os.path.join(settings.data_root, "thumbs", "faces"), exist_ok=True)
@@ -52,12 +53,11 @@ def create_app() -> FastAPI:
             StaticFiles(directory=settings.thumb_dir),
             name="thumbs",
         )
-    if os.path.exists(settings.media_root):
-        app.mount(
-            "/media/original",
-            StaticFiles(directory=settings.media_root),
-            name="original",
-        )
+    app.mount(
+        "/media/original",
+        StaticFiles(directory=settings.media_root),
+        name="original",
+    )
 
     return app
 
