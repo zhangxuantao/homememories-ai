@@ -4,7 +4,7 @@ import os
 import sys
 import random
 import hashlib
-import struct
+
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -26,22 +26,78 @@ LOCATIONS = [
     ("厦门鼓浪屿", "厦门"),
 ]
 
+COLOR_THEMES = [
+    # (name, r, g, b) — real color palettes for variety
+    ("蓝天", 100, 160, 220),
+    ("绿草", 120, 190, 130),
+    ("日落", 240, 170, 100),
+    ("樱花", 245, 200, 210),
+    ("海洋", 80, 150, 200),
+    ("森林", 80, 140, 80),
+    ("沙漠", 220, 190, 140),
+    ("雪山", 220, 230, 240),
+    ("城市", 160, 160, 170),
+    ("花园", 230, 180, 200),
+    ("秋叶", 210, 150, 90),
+    ("夜空", 30, 40, 80),
+    ("日出", 250, 200, 120),
+    ("湖水", 100, 180, 170),
+    ("麦田", 220, 210, 120),
+    ("紫藤", 180, 150, 210),
+    ("红墙", 200, 100, 90),
+    ("竹林", 100, 170, 100),
+    ("海滩", 240, 220, 180),
+    ("云雾", 200, 210, 220),
+]
 
 MEDIA_DIR = settings.media_root
 
 
-def _gen_svg(filename: str, out_dir: str, r: int, g: int, b: int) -> str:
-    """Generate a colored SVG file in out_dir and return the filename."""
+def _gen_png(filename: str, out_dir: str, r: int, g: int, b: int) -> str:
+    """Generate a simple PNG image with color blocks and pattern in out_dir."""
+    from PIL import Image, ImageDraw
+
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, filename)
-    svg = (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">'
-        f'<rect width="300" height="300" fill="rgb({r},{g},{b})"/>'
-        f'<text x="150" y="155" text-anchor="middle" font-size="48" fill="white">📷</text>'
-        f'</svg>'
+    w, h = 400, 300
+
+    img = Image.new("RGB", (w, h), (r, g, b))
+    draw = ImageDraw.Draw(img)
+
+    # Add lighter/darker stripes for visual variety
+    for i in range(0, h, 20):
+        shade = random.randint(-30, 30)
+        stripe_r = max(0, min(255, r + shade))
+        stripe_g = max(0, min(255, g + shade))
+        stripe_b = max(0, min(255, b + shade))
+        draw.rectangle([0, i, w, i + 10], fill=(stripe_r, stripe_g, stripe_b))
+
+    # Add a circle (simulating a focal point)
+    cx = w // 2 + random.randint(-80, 80)
+    cy = h // 2 + random.randint(-60, 60)
+    radius = random.randint(30, 80)
+    circle_color = (
+        max(0, min(255, r + random.randint(-80, -30))),
+        max(0, min(255, g + random.randint(-80, -30))),
+        max(0, min(255, b + random.randint(-80, -30))),
     )
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(svg)
+    draw.ellipse(
+        [cx - radius, cy - radius, cx + radius, cy + radius],
+        fill=circle_color,
+    )
+
+    # Add some small shapes for texture
+    for _ in range(random.randint(3, 8)):
+        sx = random.randint(10, w - 10)
+        sy = random.randint(10, h - 10)
+        size = random.randint(5, 20)
+        draw.rectangle([sx, sy, sx + size, sy + size], fill=(
+            max(0, min(255, r + random.randint(-60, 60))),
+            max(0, min(255, g + random.randint(-60, 60))),
+            max(0, min(255, b + random.randint(-60, 60))),
+        ))
+
+    img.save(path, "PNG")
     return filename
 
 
@@ -78,15 +134,17 @@ def seed(reset: bool = False):
         w, h = random.choice([(4000, 3000), (3000, 4000), (1920, 1080), (3024, 4032)])
         loc = random.choice(LOCATIONS)
 
-        r, g, b = random.randint(180, 240), random.randint(160, 220), random.randint(170, 230)
-        thumb_filename = f"mock_{i:03d}.svg"
-        # Save to both thumbnails directory and media directory (for original)
-        _gen_svg(thumb_filename, THUMB_DIR, r, g, b)
-        _gen_svg(thumb_filename, MEDIA_DIR, r, g, b)
+        theme = random.choice(COLOR_THEMES)
+        theme_name, r, g, b = theme
 
-        # Use the SVG filename as both path and thumbnail_path so both work
+        thumb_filename = f"mock_{i:03d}.png"
+        # Save to both thumbnails directory and media directory (for original)
+        _gen_png(thumb_filename, THUMB_DIR, r, g, b)
+        _gen_png(thumb_filename, MEDIA_DIR, r, g, b)
+
         checksum = hashlib.sha256(f"mock_{i}".encode()).hexdigest()
         dhash = hashlib.md5(f"dhash_{i}".encode()).hexdigest()[:16]
+        file_size = os.path.getsize(os.path.join(MEDIA_DIR, thumb_filename))
 
         cursor = conn.execute(
             """INSERT INTO media (path, filename, media_type, width, height, file_size,
@@ -97,7 +155,7 @@ def seed(reset: bool = False):
                 thumb_filename,
                 f"mock_{i:03d}",
                 w, h,
-                random.randint(2_000_000, 15_000_000),
+                file_size,
                 date_taken,
                 date_added,
                 thumb_filename,
@@ -136,13 +194,6 @@ def seed(reset: bool = False):
             (f"人物 {i + 1}",),
         )
         face_cluster_ids.append(cursor.lastrowid)
-
-    for mi in media_ids[:5]:
-        random_vector = struct.pack(f"{512}f", *[random.uniform(-1, 1) for _ in range(512)])
-        conn.execute(
-            "INSERT OR IGNORE INTO embeddings (media_id, vector, model_version, created_at) VALUES (?, ?, 'chinese-clip-vit-base', ?)",
-            (mi, random_vector, datetime.now().strftime("%Y-%m-%dT%H:%M:%S")),
-        )
 
     conn.commit()
     final_count = conn.execute("SELECT COUNT(*) FROM media").fetchone()[0]

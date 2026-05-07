@@ -1,4 +1,5 @@
 # backend/app/ai/embedding.py
+import os
 import threading
 import numpy as np
 from PIL import Image
@@ -24,6 +25,10 @@ class EmbeddingPipeline:
         if self._initialized:
             return
         model_name = "OFA-Sys/chinese-clip-vit-base-patch16"
+        # Use HF mirror if configured (needed in China where huggingface.co is blocked)
+        hf_endpoint = os.getenv("HF_ENDPOINT", "")
+        if hf_endpoint:
+            os.environ.setdefault("HF_ENDPOINT", hf_endpoint)
         self.model = ChineseCLIPModel.from_pretrained(model_name)
         self.processor = ChineseCLIPProcessor.from_pretrained(model_name)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -52,10 +57,11 @@ class EmbeddingPipeline:
             inputs = self.processor(images=images, return_tensors="pt", padding=True)
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
             with torch.no_grad():
-                embeddings = self.model.get_image_features(**inputs)
+                outputs = self.model.get_image_features(**inputs)
+            embeddings = outputs.pooler_output if hasattr(outputs, 'pooler_output') else outputs
             if isinstance(embeddings, torch.Tensor):
                 embeddings = embeddings.cpu().numpy()
-            embeddings = embeddings.astype(np.float32)
+            embeddings = np.asarray(embeddings, dtype=np.float32)
             # L2 normalize
             norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
             embeddings = embeddings / (norms + 1e-8)
@@ -67,10 +73,11 @@ class EmbeddingPipeline:
         inputs = self.processor(text=texts, return_tensors="pt", padding=True)
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         with torch.no_grad():
-            embeddings = self.model.get_text_features(**inputs)
+            outputs = self.model.get_text_features(**inputs)
+        embeddings = outputs.pooler_output if hasattr(outputs, 'pooler_output') else outputs
         if isinstance(embeddings, torch.Tensor):
             embeddings = embeddings.cpu().numpy()
-        embeddings = embeddings.astype(np.float32)
+        embeddings = np.asarray(embeddings, dtype=np.float32)
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
         embeddings = embeddings / (norms + 1e-8)
         return embeddings

@@ -83,7 +83,12 @@ def generate_embeddings(db_path: str | None = None) -> str:
             tracker.update(job_id, total=total, processed=0)
 
             media_ids = [r["id"] for r in rows]
-            paths = [r["path"] for r in rows]
+            paths = []
+            for r in rows:
+                p = r["path"]
+                if not os.path.isabs(p):
+                    p = os.path.join(settings.media_root, p)
+                paths.append(p)
 
             pipeline = get_embedding_pipeline()
             model_version = "chinese-clip-vit-base-patch16"
