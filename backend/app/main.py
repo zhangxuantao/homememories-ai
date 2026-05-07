@@ -15,6 +15,7 @@ async def lifespan(app: FastAPI):
     os.makedirs(settings.thumb_dir, exist_ok=True)
     os.makedirs(settings.faiss_dir, exist_ok=True)
     os.makedirs(os.path.join(settings.data_root, "thumbs", "faces"), exist_ok=True)
+    os.makedirs(os.path.join(settings.data_root, "faces"), exist_ok=True)
     init_db()
     yield
 
@@ -58,6 +59,13 @@ def create_app() -> FastAPI:
         StaticFiles(directory=settings.media_root),
         name="original",
     )
+    faces_dir = os.path.join(settings.data_root, "thumbs", "faces")
+    if os.path.exists(faces_dir):
+        app.mount(
+            "/media/faces",
+            StaticFiles(directory=faces_dir),
+            name="faces",
+        )
 
     return app
 

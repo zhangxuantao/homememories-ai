@@ -65,6 +65,7 @@ export interface FaceCluster {
   label: string | null;
   cover_face_id: number | null;
   photo_count: number;
+  cover_thumbnail: string | null;
 }
 
 // ── API Client ──
@@ -132,6 +133,11 @@ class ApiClient {
   thumbUrl(thumbnailPath: string | null | undefined): string {
     if (!thumbnailPath) return '';
     return `${this.baseUrl}/media/thumbs/${thumbnailPath}`;
+  }
+
+  faceThumbUrl(thumbnailPath: string | null | undefined): string {
+    if (!thumbnailPath) return '';
+    return `${this.baseUrl}/media/faces/${thumbnailPath}`;
   }
 
   originalUrl(path: string): string {

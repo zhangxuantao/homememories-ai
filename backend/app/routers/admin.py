@@ -15,6 +15,7 @@ from app.services.quality_service import (
 )
 from app.services.media_service import delete_media
 from app.services.face_service import start_face_detection
+from app.services.cluster_service import start_clustering_job
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -88,6 +89,12 @@ def delete_blurry_media(ids: list[int]):
 @router.post("/faces/detect")
 def start_face_detection_endpoint():
     job_id = start_face_detection()
+    return get_job_status(job_id).model_dump()
+
+
+@router.post("/faces/cluster")
+def start_clustering_endpoint(reset: bool = Query(False)):
+    job_id = start_clustering_job(reset=reset)
     return get_job_status(job_id).model_dump()
 
 

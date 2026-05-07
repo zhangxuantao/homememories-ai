@@ -77,5 +77,11 @@ export function useAdminActions() {
     return res.job_id;
   }, []);
 
-  return { currentJobId, startScan, generateEmbeddings, startFaceDetection, startBlurCheck, startDuplicateCheck };
+  const startClustering = useCallback(async (reset: boolean = false) => {
+    const res = await api.post<{ job_id: string }>(`/api/admin/faces/cluster?reset=${reset}`);
+    setCurrentJobId(res.job_id);
+    return res.job_id;
+  }, []);
+
+  return { currentJobId, startScan, generateEmbeddings, startFaceDetection, startBlurCheck, startDuplicateCheck, startClustering };
 }

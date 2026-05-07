@@ -32,7 +32,7 @@ function StatRow({ label, value }: { label: string; value: string }) {
 
 export default function SettingsPage() {
   const { stats, loading: statsLoading, refresh: refreshStats } = useAdminStats();
-  const { currentJobId, startScan, generateEmbeddings, startFaceDetection, startBlurCheck, startDuplicateCheck } = useAdminActions();
+  const { currentJobId, startScan, generateEmbeddings, startFaceDetection, startBlurCheck, startDuplicateCheck, startClustering } = useAdminActions();
   const { status: jobStatus } = useJobStatus(currentJobId);
 
   const formatBytes = (bytes: number) => {
@@ -74,6 +74,7 @@ export default function SettingsPage() {
         <div className="space-y-2">
           <ActionButton label="生成 Embeddings" onClick={generateEmbeddings} />
           <ActionButton label="人脸检测" onClick={startFaceDetection} />
+          <ActionButton label="人脸聚类" onClick={() => startClustering(false)} />
         </div>
       </Section>
 

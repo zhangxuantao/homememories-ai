@@ -42,7 +42,7 @@ def start_face_detection(db_path: str | None = None) -> str:
                 return
 
             detector = FaceDetector.get_instance()
-            thumb_dir = os.path.join(settings.data_root, "faces")
+            thumb_dir = os.path.join(settings.data_root, "thumbs", "faces")
 
             conn = get_connection(db_path)
             processed = 0
@@ -82,12 +82,18 @@ def start_face_detection(db_path: str | None = None) -> str:
             conn.commit()
             conn.close()
 
+            # ── Run clustering after detection ──
+            from app.services.cluster_service import run_clustering
+
+            clusters = run_clustering(db_path=db_path)
+
             tracker.update(
                 job_id,
                 status="completed",
                 progress=100.0,
                 processed=processed,
                 faces_found=faces_found,
+                clusters=clusters,
             )
         except Exception as e:
             tracker.update(job_id, status="failed", error=str(e))

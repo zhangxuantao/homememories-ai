@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { FaceCluster } from '../../api/client';
+import { api } from '../../api/client';
 
 interface FaceCardProps {
   cluster: FaceCluster;
@@ -8,6 +9,8 @@ interface FaceCardProps {
 }
 
 export default function FaceCard({ cluster, index, onClick }: FaceCardProps) {
+  const faceThumb = api.faceThumbUrl(cluster.cover_thumbnail);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -16,8 +19,12 @@ export default function FaceCard({ cluster, index, onClick }: FaceCardProps) {
       className="glass-card rounded-card p-5 text-center cursor-pointer hover:shadow-md transition-shadow"
       onClick={onClick}
     >
-      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-misty mx-auto mb-3 flex items-center justify-center">
-        <span className="text-2xl">👤</span>
+      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-misty mx-auto mb-3 flex items-center justify-center overflow-hidden">
+        {faceThumb ? (
+          <img src={faceThumb} alt={cluster.label || ''} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-2xl">👤</span>
+        )}
       </div>
       <h3 className="text-sm font-semibold text-text">{cluster.label || `人物 ${cluster.id}`}</h3>
       <span className="inline-block mt-1.5 px-3 py-0.5 rounded-pill bg-misty text-text-light text-xs">
