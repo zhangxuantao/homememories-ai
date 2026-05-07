@@ -21,8 +21,8 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
 @router.post("/scan")
-def start_scan():
-    job_id = start_scan_job()
+def start_scan(path: str | None = Query(None, description="Optional source directory to scan")):
+    job_id = start_scan_job(source_dir=path)
     status = get_scan_status(job_id)
     return status.model_dump()
 

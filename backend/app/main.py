@@ -47,25 +47,28 @@ def create_app() -> FastAPI:
     app.include_router(search_router)
     app.include_router(faces_router)
 
+    # Ensure directories exist before mounting static files
+    os.makedirs(settings.media_root, exist_ok=True)
+    os.makedirs(settings.thumb_dir, exist_ok=True)
+    os.makedirs(os.path.join(settings.data_root, "thumbs", "faces"), exist_ok=True)
+
     # Static file serving
-    if os.path.exists(settings.thumb_dir):
-        app.mount(
-            "/media/thumbs",
-            StaticFiles(directory=settings.thumb_dir),
-            name="thumbs",
-        )
+    app.mount(
+        "/media/thumbs",
+        StaticFiles(directory=settings.thumb_dir),
+        name="thumbs",
+    )
     app.mount(
         "/media/original",
         StaticFiles(directory=settings.media_root),
         name="original",
     )
     faces_dir = os.path.join(settings.data_root, "thumbs", "faces")
-    if os.path.exists(faces_dir):
-        app.mount(
-            "/media/faces",
-            StaticFiles(directory=faces_dir),
-            name="faces",
-        )
+    app.mount(
+        "/media/faces",
+        StaticFiles(directory=faces_dir),
+        name="faces",
+    )
 
     return app
 

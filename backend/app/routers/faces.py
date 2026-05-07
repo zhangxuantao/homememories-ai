@@ -1,4 +1,5 @@
 # backend/app/routers/faces.py
+import os
 from fastapi import APIRouter, Query, HTTPException
 from app.database import get_connection
 
@@ -22,7 +23,7 @@ def get_clusters():
             "label": r["label"],
             "cover_face_id": r["cover_face_id"],
             "photo_count": r["photo_count"],
-            "cover_thumbnail": r["cover_thumbnail"],
+            "cover_thumbnail": os.path.basename(r["cover_thumbnail"]) if r["cover_thumbnail"] else None,
         }
         for r in rows
     ]

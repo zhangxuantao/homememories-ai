@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAdminStats, useJobStatus, useAdminActions } from '../hooks/useAdmin';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -34,6 +35,7 @@ export default function SettingsPage() {
   const { stats, loading: statsLoading, refresh: refreshStats } = useAdminStats();
   const { currentJobId, startScan, generateEmbeddings, startFaceDetection, startBlurCheck, startDuplicateCheck, startClustering } = useAdminActions();
   const { status: jobStatus } = useJobStatus(currentJobId);
+  const [scanPath, setScanPath] = useState('');
 
   const formatBytes = (bytes: number) => {
     if (bytes > 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -48,7 +50,16 @@ export default function SettingsPage() {
       {/* 媒体管理 */}
       <Section title="媒体管理">
         <div className="space-y-2">
-          <ActionButton label="扫描目录" onClick={startScan} />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={scanPath}
+              onChange={(e) => setScanPath(e.target.value)}
+              placeholder="输入扫描路径，留空使用默认目录"
+              className="flex-1 px-3 py-2.5 rounded-btn bg-misty/30 text-sm text-text placeholder:text-text-light/60 border border-misty focus:outline-none focus:border-primary transition-colors"
+            />
+          </div>
+          <ActionButton label="扫描目录" onClick={() => startScan(scanPath || undefined)} />
           {jobStatus && (
             <div className="glass-card rounded-card p-3 text-sm">
               <div className="flex justify-between text-text-light mb-1">

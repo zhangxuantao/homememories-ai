@@ -43,14 +43,15 @@ class JobTracker:
 ScanJobTracker = JobTracker
 
 
-def start_scan_job() -> str:
+def start_scan_job(source_dir: str | None = None) -> str:
     tracker = JobTracker()
     job_id = tracker.create(total=0, new=0, skipped=0)
 
     def _run_scan():
         tracker.update(job_id, status="running")
         try:
-            result = scan_directory(settings.media_root, settings.thumb_dir)
+            target_dir = source_dir or settings.media_root
+            result = scan_directory(target_dir, settings.thumb_dir)
             tracker.update(
                 job_id,
                 status="completed",

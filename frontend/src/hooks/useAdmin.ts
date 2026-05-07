@@ -47,8 +47,8 @@ export function useJobStatus(jobId: string | null, pollInterval: number = 2000) 
 export function useAdminActions() {
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
 
-  const startScan = useCallback(async () => {
-    const res = await api.post<{ job_id: string }>('/api/admin/scan');
+  const startScan = useCallback(async (scanPath?: string) => {
+    const res = await api.post<{ job_id: string }>('/api/admin/scan', undefined, scanPath ? { path: scanPath } : undefined);
     setCurrentJobId(res.job_id);
     return res.job_id;
   }, []);
