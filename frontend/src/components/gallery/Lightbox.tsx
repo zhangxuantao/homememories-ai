@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { MediaItem } from '../../api/client';
 import { api } from '../../api/client';
@@ -8,17 +8,42 @@ interface LightboxProps {
   onClose: () => void;
   onPrev: (() => void) | null;
   onNext: (() => void) | null;
+  onNavigate?: (id: number) => void;
 }
 
-export default function Lightbox({ item, onClose, onPrev, onNext }: LightboxProps) {
+export default function Lightbox({ item, onClose, onPrev, onNext, onNavigate }: LightboxProps) {
   const [displayUrl, setDisplayUrl] = useState(() => api.originalUrl(item.path));
   const [useThumb, setUseThumb] = useState(false);
+  const [showSimilar, setShowSimilar] = useState(false);
+  const [similarItems, setSimilarItems] = useState<MediaItem[]>([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
 
   // Reset when item changes
   useEffect(() => {
     setDisplayUrl(api.originalUrl(item.path));
     setUseThumb(false);
+    setShowSimilar(false);
+    setSimilarItems([]);
   }, [item.id]);
+
+  const handleShowSimilar = useCallback(async () => {
+    if (showSimilar) {
+      setShowSimilar(false);
+      return;
+    }
+    setShowSimilar(true);
+    if (similarItems.length === 0) {
+      setLoadingSimilar(true);
+      try {
+        const items = await api.get<MediaItem[]>(`/api/media/${item.id}/similar`, { limit: 12 });
+        setSimilarItems(items);
+      } catch {
+        setSimilarItems([]);
+      } finally {
+        setLoadingSimilar(false);
+      }
+    }
+  }, [showSimilar, similarItems.length, item.id]);
 
   const handleImgError = () => {
     const thumb = api.thumbUrl(item.thumbnail_path);
@@ -53,14 +78,22 @@ export default function Lightbox({ item, onClose, onPrev, onNext }: LightboxProp
       >
         <div className="flex items-center justify-between px-4 py-3 text-white text-sm">
           <button onClick={onClose} className="hover:text-primary transition-colors">✕ 关闭</button>
-          <a
-            href={displayUrl}
-            download={item.filename}
-            className="hover:text-primary transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            下载
-          </a>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleShowSimilar}
+              className={`hover:text-primary transition-colors ${showSimilar ? 'text-primary' : ''}`}
+            >
+              {showSimilar ? '隐藏相似' : '相似照片'}
+            </button>
+            <a
+              href={displayUrl}
+              download={item.filename}
+              className="hover:text-primary transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              下载
+            </a>
+          </div>
         </div>
 
         <div className="flex-1 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
@@ -90,6 +123,39 @@ export default function Lightbox({ item, onClose, onPrev, onNext }: LightboxProp
             </button>
           )}
         </div>
+
+        {showSimilar && (
+          <div className="px-4" onClick={(e) => e.stopPropagation()}>
+            {loadingSimilar ? (
+              <div className="flex items-center gap-2 py-2 text-white/60 text-sm">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                查找相似照片...
+              </div>
+            ) : similarItems.length === 0 ? (
+              <p className="py-2 text-white/50 text-sm">暂无相似照片</p>
+            ) : (
+              <div className="flex gap-2 overflow-x-auto py-2 scrollbar-thin">
+                {similarItems.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => onNavigate?.(s.id)}
+                    className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-white/10 hover:ring-2 hover:ring-primary transition-all"
+                  >
+                    <img
+                      src={api.thumbUrl(s.thumbnail_path)}
+                      alt={s.filename}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="px-4 py-3 text-white text-sm bg-gradient-to-t from-black/60 to-transparent">
           {item.date_taken && (

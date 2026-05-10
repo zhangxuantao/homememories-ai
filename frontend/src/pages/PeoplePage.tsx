@@ -28,6 +28,16 @@ export default function PeoplePage() {
     }
   };
 
+  const handleLabelChange = async (id: number, label: string) => {
+    await api.patch(`/api/faces/cluster/${id}`, undefined, { label });
+    setClusters(prev =>
+      prev.map(c => c.id === id ? { ...c, label } : c)
+    );
+    if (selectedCluster?.id === id) {
+      setSelectedCluster(prev => prev ? { ...prev, label } : null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -66,7 +76,7 @@ export default function PeoplePage() {
       ) : (
         <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
           {clusters.map((c, i) => (
-            <FaceCard key={c.id} cluster={c} index={i} onClick={() => handleClusterClick(c)} />
+            <FaceCard key={c.id} cluster={c} index={i} onClick={() => handleClusterClick(c)} onLabelChange={handleLabelChange} />
           ))}
         </div>
       )}

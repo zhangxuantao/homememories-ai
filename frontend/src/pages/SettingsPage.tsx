@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAdminStats, useJobStatus, useAdminActions } from '../hooks/useAdmin';
+import { api, MediaItem } from '../api/client';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -22,6 +23,17 @@ function ActionButton({ label, onClick, disabled }: { label: string; onClick: ()
   );
 }
 
+function SmallButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-3 py-1 rounded-btn text-xs font-medium text-primary border border-primary hover:bg-primary hover:text-white transition-colors"
+    >
+      {label}
+    </button>
+  );
+}
+
 function StatRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-center py-2 border-b border-misty last:border-0">
@@ -31,16 +43,68 @@ function StatRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ThumbTile({ item, api }: { item: MediaItem; api: { thumbUrl: (p: string | null | undefined) => string } }) {
+  const src = api.thumbUrl(item.thumbnail_path);
+  return (
+    <div className="relative aspect-square rounded-lg overflow-hidden bg-misty/50">
+      {src ? (
+        <img src={src} alt={item.filename} className="w-full h-full object-cover" loading="lazy" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-2xl">
+          {item.media_type === 'video' ? '🎬' : '🖼️'}
+        </div>
+      )}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
+        <span className="text-[10px] text-white/90 truncate block">{item.date_taken?.slice(0, 10) || item.filename}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { stats, loading: statsLoading, refresh: refreshStats } = useAdminStats();
-  const { currentJobId, startScan, generateEmbeddings, startFaceDetection, startBlurCheck, startDuplicateCheck, startClustering } = useAdminActions();
+  const { currentJobId, startScan, generateEmbeddings, startFaceDetection, startBlurCheck, startDuplicateCheck, startClustering, fetchBlurryMedia, fetchDuplicatePairs, deleteBlurryMedia } = useAdminActions();
   const { status: jobStatus } = useJobStatus(currentJobId);
   const [scanPath, setScanPath] = useState('');
+
+  // Cleanup results state
+  const [blurryItems, setBlurryItems] = useState<MediaItem[] | null>(null);
+  const [duplicatePairs, setDuplicatePairs] = useState<MediaItem[][] | null>(null);
+  const [showBlurry, setShowBlurry] = useState(false);
+  const [showDuplicates, setShowDuplicates] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
 
   const formatBytes = (bytes: number) => {
     if (bytes > 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
     if (bytes > 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${bytes} B`;
+  };
+
+  const handleViewBlurry = async () => {
+    setShowBlurry(!showBlurry);
+    if (blurryItems === null) {
+      const items = await fetchBlurryMedia();
+      setBlurryItems(items);
+    }
+  };
+
+  const handleViewDuplicates = async () => {
+    setShowDuplicates(!showDuplicates);
+    if (duplicatePairs === null) {
+      const pairs = await fetchDuplicatePairs();
+      setDuplicatePairs(pairs);
+    }
+  };
+
+  const handleDeleteBlurry = async (id: number) => {
+    setDeletingIds(prev => new Set(prev).add(id));
+    await deleteBlurryMedia([id]);
+    setBlurryItems(prev => prev ? prev.filter(item => item.id !== id) : null);
+    setDeletingIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
 
   return (
@@ -91,9 +155,66 @@ export default function SettingsPage() {
 
       {/* 清理工具 */}
       <Section title="清理工具">
-        <div className="space-y-2">
-          <ActionButton label="检测模糊照片" onClick={startBlurCheck} />
-          <ActionButton label="检测重复照片" onClick={startDuplicateCheck} />
+        <div className="space-y-3">
+          {/* Blur detection */}
+          <div>
+            <ActionButton label="检测模糊照片" onClick={startBlurCheck} />
+            <div className="mt-2">
+              <SmallButton label={showBlurry ? '隐藏结果' : '查看结果'} onClick={handleViewBlurry} />
+            </div>
+            {showBlurry && blurryItems !== null && (
+              <div className="mt-3">
+                <p className="text-sm text-text-light mb-2">
+                  {blurryItems.length === 0 ? '没有检测到模糊照片' : `找到 ${blurryItems.length} 张模糊照片`}
+                </p>
+                {blurryItems.length > 0 && (
+                  <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                    {blurryItems.map(item => (
+                      <div key={item.id} className="relative group">
+                        <ThumbTile item={item} api={api} />
+                        <button
+                          onClick={() => handleDeleteBlurry(item.id)}
+                          disabled={deletingIds.has(item.id)}
+                          className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                          title="删除"
+                        >
+                          {deletingIds.has(item.id) ? '...' : '✕'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Duplicate detection */}
+          <div>
+            <ActionButton label="检测重复照片" onClick={startDuplicateCheck} />
+            <div className="mt-2">
+              <SmallButton label={showDuplicates ? '隐藏结果' : '查看结果'} onClick={handleViewDuplicates} />
+            </div>
+            {showDuplicates && duplicatePairs !== null && (
+              <div className="mt-3">
+                <p className="text-sm text-text-light mb-2">
+                  {duplicatePairs.length === 0 ? '没有检测到重复照片' : `找到 ${duplicatePairs.length} 组重复照片`}
+                </p>
+                {duplicatePairs.length > 0 && (
+                  <div className="space-y-3">
+                    {duplicatePairs.map((pair, i) => (
+                      <div key={i} className="glass-card rounded-card p-2">
+                        <p className="text-xs text-text-light mb-1">重复组 {i + 1}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <ThumbTile item={pair[0]} api={api} />
+                          <ThumbTile item={pair[1]} api={api} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </Section>
 

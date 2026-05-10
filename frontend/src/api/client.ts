@@ -127,8 +127,31 @@ class ApiClient {
     return res.json();
   }
 
-  async delete<T>(path: string): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`, { method: 'DELETE' });
+  async delete<T>(path: string, body?: unknown): Promise<T> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method: 'DELETE',
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`${res.status} ${res.statusText}: ${text}`);
+    }
+    return res.json();
+  }
+
+  async patch<T>(path: string, body?: unknown, params?: Record<string, string | undefined>): Promise<T> {
+    const url = new URL(path, this.baseUrl);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+      });
+    }
+    const res = await fetch(url.toString(), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`${res.status} ${res.statusText}: ${text}`);

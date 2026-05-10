@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api, SystemStats, JobStatus, ScanStatus } from '../api/client';
+import { api, SystemStats, JobStatus, ScanStatus, MediaItem } from '../api/client';
 
 export function useAdminStats() {
   const [stats, setStats] = useState<SystemStats | null>(null);
@@ -83,5 +83,20 @@ export function useAdminActions() {
     return res.job_id;
   }, []);
 
-  return { currentJobId, startScan, generateEmbeddings, startFaceDetection, startBlurCheck, startDuplicateCheck, startClustering };
+  const fetchBlurryMedia = useCallback(async (threshold: number = 100, limit: number = 50) => {
+    const res = await api.get<MediaItem[]>('/api/admin/cleanup/blurry', { threshold, limit });
+    return res;
+  }, []);
+
+  const fetchDuplicatePairs = useCallback(async () => {
+    const res = await api.get<MediaItem[][]>('/api/admin/cleanup/duplicates');
+    return res;
+  }, []);
+
+  const deleteBlurryMedia = useCallback(async (ids: number[]) => {
+    const res = await api.delete<{ deleted: { id: number; deleted: boolean }[] }>('/api/admin/cleanup/blurry', ids);
+    return res.deleted;
+  }, []);
+
+  return { currentJobId, startScan, generateEmbeddings, startFaceDetection, startBlurCheck, startDuplicateCheck, startClustering, fetchBlurryMedia, fetchDuplicatePairs, deleteBlurryMedia };
 }

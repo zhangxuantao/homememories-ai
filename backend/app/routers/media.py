@@ -4,6 +4,7 @@ from app.services.media_service import (
     get_media_by_id,
     get_media_random,
     get_media_on_this_day,
+    get_similar_media,
     delete_media,
 )
 
@@ -28,6 +29,12 @@ def on_this_day(
     day: int = Query(..., ge=1, le=31),
 ):
     items = get_media_on_this_day(month=month, day=day)
+    return [item.model_dump() for item in items]
+
+
+@router.get("/{media_id}/similar")
+def get_similar(media_id: int, limit: int = Query(20, le=100)):
+    items = get_similar_media(media_id, limit=limit)
     return [item.model_dump() for item in items]
 
 

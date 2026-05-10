@@ -1,6 +1,8 @@
 # backend/app/services/media_service.py
+import numpy as np
 from app.database import get_connection
 from app.models import MediaItem
+from app.services.search_service import get_search_index
 
 
 def get_media_by_id(media_id: int, db_path: str | None = None) -> MediaItem | None:
@@ -45,6 +47,50 @@ def get_media_on_this_day(
     ).fetchall()
     conn.close()
     return [MediaItem.from_row(r) for r in rows]
+
+
+def get_similar_media(
+    media_id: int, limit: int = 20, db_path: str | None = None
+) -> list[MediaItem]:
+    conn = get_connection(db_path)
+    row = conn.execute(
+        "SELECT vector FROM embeddings WHERE media_id = ?", (media_id,)
+    ).fetchone()
+    conn.close()
+
+    if row is None:
+        return []
+
+    blob = row["vector"]
+    query_vec = np.frombuffer(blob, dtype=np.float32).copy()
+
+    index = get_search_index(db_path)
+    if index.id_map is None:
+        return []
+
+    search_results = index.search(query_vec, k=limit + 1)
+
+    similar_ids = [
+        r[0] for r in search_results if r[0] != media_id
+    ][:limit]
+
+    if not similar_ids:
+        return []
+
+    conn = get_connection(db_path)
+    placeholders = ",".join("?" * len(similar_ids))
+    rows = conn.execute(
+        f"SELECT * FROM media WHERE id IN ({placeholders})",
+        similar_ids,
+    ).fetchall()
+    conn.close()
+
+    row_map = {r["id"]: r for r in rows}
+    return [
+        MediaItem.from_row(row_map[mid])
+        for mid in similar_ids
+        if mid in row_map
+    ]
 
 
 def delete_media(media_id: int, db_path: str | None = None) -> bool:

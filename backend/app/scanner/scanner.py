@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from app.database import get_connection
 from app.scanner.exif_extractor import extract_date_taken
 from app.scanner.thumbnail import generate_thumbnail
+from app.scanner.video_extractor import extract_video_info, generate_video_thumbnail
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff", ".tif"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"}
@@ -60,6 +61,7 @@ def scan_directory(
 
             width = None
             height = None
+            duration = None
             thumbnail_path = None
 
             if media_type == "image":
@@ -72,15 +74,31 @@ def scan_directory(
                     pass
 
                 thumbnail_path = generate_thumbnail(filepath, thumb_dir, media_root)
+            else:
+                # Video: extract keyframe thumbnail and metadata
+                info = extract_video_info(filepath)
+                width = info["width"]
+                height = info["height"]
+                duration = info["duration"]
+
+                thumbnail_path = generate_video_thumbnail(filepath, thumb_dir, media_root)
+
+                # Fallback date_taken from file modification time
+                if date_taken is None:
+                    try:
+                        mtime = os.path.getmtime(filepath)
+                        date_taken = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+                    except OSError:
+                        pass
 
             conn.execute(
                 """INSERT INTO media
                    (path, filename, media_type, width, height, file_size,
-                    date_taken, date_added, thumbnail_path, checksum)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    date_taken, date_added, thumbnail_path, duration, checksum)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     filepath, filename, media_type, width, height, file_size,
-                    date_taken, date_added, thumbnail_path, csum,
+                    date_taken, date_added, thumbnail_path, duration, csum,
                 ),
             )
             new += 1

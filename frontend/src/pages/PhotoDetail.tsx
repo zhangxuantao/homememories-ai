@@ -37,6 +37,7 @@ export default function PhotoDetail() {
       onClose={() => navigate(-1)}
       onPrev={hasPrev ? () => navigate(`/photo/${mediaId - 1}`, { replace: true }) : null}
       onNext={hasNext ? () => navigate(`/photo/${mediaId + 1}`, { replace: true }) : null}
+      onNavigate={(id) => navigate(`/photo/${id}`, { replace: true })}
     />
   );
 }
