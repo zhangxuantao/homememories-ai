@@ -55,6 +55,72 @@ def get_embedding_pipeline() -> EmbeddingPipeline:
     return _embedding_pipeline
 
 
+def _generate_all_embeddings(db_path: str | None = None) -> int:
+    """Generate CLIP embeddings for all media without them (synchronous).
+    Returns the number of embeddings created.
+    """
+    conn = get_connection(db_path)
+    rows = conn.execute(
+        "SELECT id, path FROM media "
+        "WHERE embedding_id IS NULL AND media_type = 'image' "
+        "ORDER BY id"
+    ).fetchall()
+    conn.close()
+
+    if not rows:
+        return 0
+
+    media_ids = [r["id"] for r in rows]
+    paths = []
+    for r in rows:
+        p = r["path"]
+        if not os.path.isabs(p):
+            p = os.path.join(settings.media_root, p)
+        paths.append(p)
+
+    pipeline = get_embedding_pipeline()
+    model_version = "chinese-clip-vit-base-patch16"
+    now = datetime.now(timezone.utc).isoformat()
+
+    embeddings = pipeline.embed_images(paths, batch_size=32)
+
+    if len(embeddings) != len(paths):
+        embeddings_list = []
+        valid_media_ids = []
+        for i, p in enumerate(paths):
+            single_result = pipeline.embed_images([p])
+            if single_result.shape[0] == 1:
+                embeddings_list.append(single_result[0])
+                valid_media_ids.append(media_ids[i])
+        embeddings = np.array(embeddings_list, dtype=np.float32) if embeddings_list else np.empty((0, 512), dtype=np.float32)
+        media_ids = valid_media_ids
+
+    conn = get_connection(db_path)
+    processed = 0
+    for i, media_id in enumerate(media_ids):
+        if i >= len(embeddings):
+            break
+        vec = embeddings[i]
+        cur = conn.execute(
+            "INSERT INTO embeddings (media_id, vector, model_version, created_at) "
+            "VALUES (?, ?, ?, ?)",
+            (media_id, vec.astype(np.float32).tobytes(), model_version, now),
+        )
+        emb_id = cur.lastrowid
+        conn.execute(
+            "UPDATE media SET embedding_id = ? WHERE id = ?",
+            (emb_id, media_id),
+        )
+        processed += 1
+
+    conn.commit()
+    conn.close()
+
+    rebuild_index(db_path)
+
+    return processed
+
+
 def generate_embeddings(db_path: str | None = None) -> str:
     """Start a background job to generate CLIP embeddings for media without them.
 
@@ -67,76 +133,12 @@ def generate_embeddings(db_path: str | None = None) -> str:
         tracker.update(job_id, status="running")
         try:
             conn = get_connection(db_path)
-            rows = conn.execute(
-                "SELECT id, path FROM media "
-                "WHERE embedding_id IS NULL AND media_type = 'image' "
-                "ORDER BY id"
-            ).fetchall()
+            row = conn.execute("SELECT COUNT(*) FROM media WHERE embedding_id IS NULL AND media_type = 'image'").fetchone()
+            total = row[0] if row else 0
             conn.close()
-
-            if not rows:
-                tracker.update(job_id, status="completed", progress=100.0,
-                               total=0, processed=0)
-                return
-
-            total = len(rows)
             tracker.update(job_id, total=total, processed=0)
 
-            media_ids = [r["id"] for r in rows]
-            paths = []
-            for r in rows:
-                p = r["path"]
-                if not os.path.isabs(p):
-                    p = os.path.join(settings.media_root, p)
-                paths.append(p)
-
-            pipeline = get_embedding_pipeline()
-            model_version = "chinese-clip-vit-base-patch16"
-            now = datetime.now(timezone.utc).isoformat()
-
-            # Process in batches through pipeline
-            embeddings = pipeline.embed_images(paths, batch_size=32)
-
-            # Map embeddings back to media_ids
-            # If counts match, assume 1:1 mapping
-            # If not, we need to individually identify which images succeeded
-            if len(embeddings) != len(paths):
-                # Fallback: process one at a time to ensure correct mapping
-                embeddings_list = []
-                valid_media_ids = []
-                for i, p in enumerate(paths):
-                    single_result = pipeline.embed_images([p])
-                    if single_result.shape[0] == 1:
-                        embeddings_list.append(single_result[0])
-                        valid_media_ids.append(media_ids[i])
-                embeddings = np.array(embeddings_list, dtype=np.float32) if embeddings_list else np.empty((0, 512), dtype=np.float32)
-                media_ids = valid_media_ids
-
-            conn = get_connection(db_path)
-            processed = 0
-            for i, media_id in enumerate(media_ids):
-                if i >= len(embeddings):
-                    break
-                vec = embeddings[i]
-                cur = conn.execute(
-                    "INSERT INTO embeddings (media_id, vector, model_version, created_at) "
-                    "VALUES (?, ?, ?, ?)",
-                    (media_id, vec.astype(np.float32).tobytes(), model_version, now),
-                )
-                emb_id = cur.lastrowid
-                conn.execute(
-                    "UPDATE media SET embedding_id = ? WHERE id = ?",
-                    (emb_id, media_id),
-                )
-                processed += 1
-
-            conn.commit()
-            conn.close()
-
-            tracker.update(job_id, processed=processed)
-
-            # Rebuild FAISS index after embedding generation
-            rebuild_index(db_path)
+            processed = _generate_all_embeddings(db_path)
 
             tracker.update(job_id, status="completed", progress=100.0,
                            total=total, processed=processed)

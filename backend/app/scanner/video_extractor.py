@@ -79,4 +79,4 @@ def generate_video_thumbnail(filepath: str, thumb_dir: str, source_root: str, si
     thumb_path = os.path.join(thumb_dir, rel_path + ".jpg")
     os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
     img.save(thumb_path, "JPEG", quality=80)
-    return thumb_path
+    return os.path.relpath(thumb_path, thumb_dir)

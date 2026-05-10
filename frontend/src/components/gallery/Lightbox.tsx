@@ -12,7 +12,7 @@ interface LightboxProps {
 }
 
 export default function Lightbox({ item, onClose, onPrev, onNext, onNavigate }: LightboxProps) {
-  const [displayUrl, setDisplayUrl] = useState(() => api.originalUrl(item.path));
+  const [displayUrl, setDisplayUrl] = useState(() => api.originalUrl(item.id));
   const [useThumb, setUseThumb] = useState(false);
   const [showSimilar, setShowSimilar] = useState(false);
   const [similarItems, setSimilarItems] = useState<MediaItem[]>([]);
@@ -20,7 +20,7 @@ export default function Lightbox({ item, onClose, onPrev, onNext, onNavigate }: 
 
   // Reset when item changes
   useEffect(() => {
-    setDisplayUrl(api.originalUrl(item.path));
+    setDisplayUrl(api.originalUrl(item.id));
     setUseThumb(false);
     setShowSimilar(false);
     setSimilarItems([]);
@@ -106,13 +106,24 @@ export default function Lightbox({ item, onClose, onPrev, onNext, onNavigate }: 
             </button>
           )}
 
-          <img
-            src={displayUrl}
-            alt={item.filename}
-            className="max-w-full max-h-[80vh] object-contain select-none"
-            draggable={false}
-            onError={handleImgError}
-          />
+          {item.media_type === 'video' ? (
+            <video
+              src={displayUrl}
+              controls
+              autoPlay
+              className="max-w-full max-h-[80vh] select-none"
+              style={{ outline: 'none' }}
+              onError={handleImgError}
+            />
+          ) : (
+            <img
+              src={displayUrl}
+              alt={item.filename}
+              className="max-w-full max-h-[80vh] object-contain select-none"
+              draggable={false}
+              onError={handleImgError}
+            />
+          )}
 
           {onNext && (
             <button

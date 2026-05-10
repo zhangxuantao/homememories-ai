@@ -1,5 +1,7 @@
 # backend/app/routers/media.py
+import os
 from fastapi import APIRouter, Query, HTTPException
+from fastapi.responses import FileResponse
 from app.services.media_service import (
     get_media_by_id,
     get_media_random,
@@ -9,6 +11,21 @@ from app.services.media_service import (
 )
 
 router = APIRouter(prefix="/api/media", tags=["media"])
+
+
+@router.get("/{media_id}/file")
+def serve_original_file(media_id: int):
+    """Serve the original media file by media ID (supports video streaming)."""
+    item = get_media_by_id(media_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Media not found")
+    path = item.path
+    if not os.path.isabs(path):
+        from app.config import settings
+        path = os.path.join(settings.media_root, path)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    return FileResponse(path, media_type="application/octet-stream")
 
 
 @router.get("/random")

@@ -65,7 +65,7 @@ export default function HomePage() {
               index={i}
               title={item.date_taken?.slice(0, 10)}
               subtitle={item.filename}
-              onClick={() => navigate(`/photo/${item.id}`)}
+              onClick={() => navigate(`/photo/${item.id}`, { state: { from: '/' } })}
             />
           ))}
         </section>
@@ -83,7 +83,7 @@ export default function HomePage() {
                 index={i}
                 title={item.date_taken?.slice(0, 10)}
                 subtitle={item.filename}
-                onClick={() => navigate(`/photo/${item.id}`)}
+                onClick={() => navigate(`/photo/${item.id}`, { state: { from: '/' } })}
               />
             ))}
           </div>
@@ -99,7 +99,7 @@ export default function HomePage() {
               <div
                 key={item.id}
                 className="flex-shrink-0 w-20 h-20 rounded-card overflow-hidden bg-misty cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => navigate(`/photo/${item.id}`)}
+                onClick={() => navigate(`/photo/${item.id}`, { state: { from: '/' } })}
               >
                 {item.thumbnail_path ? (
                   <img

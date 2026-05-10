@@ -77,6 +77,12 @@ export function useAdminActions() {
     return res.job_id;
   }, []);
 
+  const startProcessAll = useCallback(async (scanPath?: string) => {
+    const res = await api.post<{ job_id: string }>('/api/admin/process-all', undefined, scanPath ? { path: scanPath } : undefined);
+    setCurrentJobId(res.job_id);
+    return res.job_id;
+  }, []);
+
   const startClustering = useCallback(async (reset: boolean = false) => {
     const res = await api.post<{ job_id: string }>(`/api/admin/faces/cluster?reset=${reset}`);
     setCurrentJobId(res.job_id);
@@ -98,5 +104,5 @@ export function useAdminActions() {
     return res.deleted;
   }, []);
 
-  return { currentJobId, startScan, generateEmbeddings, startFaceDetection, startBlurCheck, startDuplicateCheck, startClustering, fetchBlurryMedia, fetchDuplicatePairs, deleteBlurryMedia };
+  return { currentJobId, startScan, generateEmbeddings, startFaceDetection, startProcessAll, startBlurCheck, startDuplicateCheck, startClustering, fetchBlurryMedia, fetchDuplicatePairs, deleteBlurryMedia };
 }

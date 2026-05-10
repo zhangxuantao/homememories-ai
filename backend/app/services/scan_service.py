@@ -84,6 +84,55 @@ def get_job_status(job_id: str) -> JobStatus | None:
     return JobStatus(job_id=job_id, **job)
 
 
+def start_process_all(source_dir: str | None = None) -> str:
+    """Start a background job that runs the full pipeline sequentially:
+    Scan → Embeddings → Face Detection → Clustering → Event Generation.
+    """
+    tracker = JobTracker()
+    job_id = tracker.create(stage="scan", step=0, total_steps=5, error=None)
+
+    def _run():
+        stages = ["scan", "embeddings", "face_detection", "clustering", "events"]
+        step_labels = ["扫描文件", "生成 Embeddings", "人脸检测", "人脸聚类", "事件生成"]
+
+        for i, (stage, label) in enumerate(zip(stages, step_labels)):
+            tracker.update(job_id, stage=stage, step=i + 1, status="running",
+                           progress=round(i / len(stages) * 100, 1),
+                           message=f"正在执行 ({i + 1}/{len(stages)}): {label}")
+
+            try:
+                if stage == "scan":
+                    target_dir = source_dir or settings.media_root
+                    result = scan_directory(target_dir, settings.thumb_dir)
+                    tracker.update(job_id, scan_result=result)
+                elif stage == "embeddings":
+                    from app.services.search_service import _generate_all_embeddings
+                    result = _generate_all_embeddings()
+                    tracker.update(job_id, embedding_result={"processed": result})
+                elif stage == "face_detection":
+                    from app.services.face_service import _run_face_detection
+                    result = _run_face_detection()
+                    tracker.update(job_id, face_result=result)
+                elif stage == "clustering":
+                    from app.services.cluster_service import run_clustering
+                    clusters = run_clustering()
+                    tracker.update(job_id, cluster_result={"clusters": clusters})
+                elif stage == "events":
+                    from app.services.event_service import _generate_events
+                    events = _generate_events()
+                    tracker.update(job_id, event_result={"events": events})
+            except Exception as e:
+                tracker.update(job_id, status="failed", error=f"[{label}] {str(e)}")
+                return
+
+        tracker.update(job_id, status="completed", progress=100.0, stage="done",
+                       message="全部处理完成")
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    return job_id
+
+
 def get_system_stats(db_path: str | None = None) -> SystemStats:
     conn = get_connection(db_path)
     db_path_actual = db_path or os.path.join(settings.data_root, "metadata.db")

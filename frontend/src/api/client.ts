@@ -70,7 +70,7 @@ export interface FaceCluster {
 
 // ── API Client ──
 
-const BASE_URL = 'http://localhost:8501';
+const BASE_URL = '';
 
 class ApiClient {
   private baseUrl: string;
@@ -79,14 +79,19 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  async get<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
-    const url = new URL(path, this.baseUrl);
+  private buildUrl(path: string, params?: Record<string, string | number | undefined>): string {
+    const base = this.baseUrl || window.location.origin;
+    const url = new URL(path, base);
     if (params) {
       Object.entries(params).forEach(([k, v]) => {
         if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
       });
     }
-    const res = await fetch(url.toString());
+    return url.toString();
+  }
+
+  async get<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
+    const res = await fetch(this.buildUrl(path, params));
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`${res.status} ${res.statusText}: ${text}`);
@@ -95,13 +100,7 @@ class ApiClient {
   }
 
   async post<T>(path: string, body?: unknown, params?: Record<string, string | undefined>): Promise<T> {
-    const url = new URL(path, this.baseUrl);
-    if (params) {
-      Object.entries(params).forEach(([k, v]) => {
-        if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
-      });
-    }
-    const res = await fetch(url.toString(), {
+    const res = await fetch(this.buildUrl(path, params), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
@@ -116,7 +115,7 @@ class ApiClient {
   async upload<T>(path: string, file: File): Promise<T> {
     const formData = new FormData();
     formData.append('image_file', file);
-    const res = await fetch(`${this.baseUrl}${path}`, {
+    const res = await fetch(this.buildUrl(path), {
       method: 'POST',
       body: formData,
     });
@@ -128,7 +127,7 @@ class ApiClient {
   }
 
   async delete<T>(path: string, body?: unknown): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`, {
+    const res = await fetch(this.buildUrl(path), {
       method: 'DELETE',
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,
@@ -141,13 +140,7 @@ class ApiClient {
   }
 
   async patch<T>(path: string, body?: unknown, params?: Record<string, string | undefined>): Promise<T> {
-    const url = new URL(path, this.baseUrl);
-    if (params) {
-      Object.entries(params).forEach(([k, v]) => {
-        if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
-      });
-    }
-    const res = await fetch(url.toString(), {
+    const res = await fetch(this.buildUrl(path, params), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
@@ -161,17 +154,19 @@ class ApiClient {
 
   thumbUrl(thumbnailPath: string | null | undefined): string {
     if (!thumbnailPath) return '';
-    return `${this.baseUrl}/media/thumbs/${thumbnailPath}`;
+    const base = this.baseUrl || '';
+    return `${base}/media/thumbs/${thumbnailPath}`;
   }
 
   faceThumbUrl(thumbnailPath: string | null | undefined): string {
     if (!thumbnailPath) return '';
-    return `${this.baseUrl}/media/faces/${thumbnailPath}`;
+    const base = this.baseUrl || '';
+    return `${base}/media/faces/${thumbnailPath}`;
   }
 
-  originalUrl(path: string): string {
-    if (path.startsWith('http')) return path;
-    return `${this.baseUrl}/media/original/${encodeURIComponent(path)}`;
+  originalUrl(mediaId: number, _path?: string): string {
+    const base = this.baseUrl || '';
+    return `${base}/api/media/${mediaId}/file`;
   }
 }
 

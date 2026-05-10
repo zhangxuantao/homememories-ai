@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { api, MediaItem } from '../api/client';
 import { useMediaById } from '../hooks/useMedia';
@@ -7,8 +7,10 @@ import Lightbox from '../components/gallery/Lightbox';
 export default function PhotoDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const mediaId = Number(id);
   const { data: item, loading } = useMediaById(mediaId);
+  const returnTo = (location.state as any)?.from || '/';
 
   const [hasPrev, setHasPrev] = useState(false);
   const [hasNext, setHasNext] = useState(false);
@@ -31,13 +33,15 @@ export default function PhotoDetail() {
     );
   }
 
+  const handleNav = (navId: number) => navigate(`/photo/${navId}`, { replace: true, state: { from: returnTo } });
+
   return (
     <Lightbox
       item={item}
-      onClose={() => navigate(-1)}
-      onPrev={hasPrev ? () => navigate(`/photo/${mediaId - 1}`, { replace: true }) : null}
-      onNext={hasNext ? () => navigate(`/photo/${mediaId + 1}`, { replace: true }) : null}
-      onNavigate={(id) => navigate(`/photo/${id}`, { replace: true })}
+      onClose={() => navigate(returnTo)}
+      onPrev={hasPrev ? () => handleNav(mediaId - 1) : null}
+      onNext={hasNext ? () => handleNav(mediaId + 1) : null}
+      onNavigate={(navId) => handleNav(navId)}
     />
   );
 }

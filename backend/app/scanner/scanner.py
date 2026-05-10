@@ -83,13 +83,13 @@ def scan_directory(
 
                 thumbnail_path = generate_video_thumbnail(filepath, thumb_dir, media_root)
 
-                # Fallback date_taken from file modification time
-                if date_taken is None:
-                    try:
-                        mtime = os.path.getmtime(filepath)
-                        date_taken = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
-                    except OSError:
-                        pass
+            # Fallback date_taken from file modification time (for images and videos without EXIF)
+            if date_taken is None:
+                try:
+                    mtime = os.path.getmtime(filepath)
+                    date_taken = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+                except OSError:
+                    pass
 
             conn.execute(
                 """INSERT INTO media

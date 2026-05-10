@@ -63,7 +63,7 @@ function ThumbTile({ item, api }: { item: MediaItem; api: { thumbUrl: (p: string
 
 export default function SettingsPage() {
   const { stats, loading: statsLoading, refresh: refreshStats } = useAdminStats();
-  const { currentJobId, startScan, generateEmbeddings, startFaceDetection, startBlurCheck, startDuplicateCheck, startClustering, fetchBlurryMedia, fetchDuplicatePairs, deleteBlurryMedia } = useAdminActions();
+  const { currentJobId, startScan, generateEmbeddings, startFaceDetection, startProcessAll, startBlurCheck, startDuplicateCheck, startClustering, fetchBlurryMedia, fetchDuplicatePairs, deleteBlurryMedia } = useAdminActions();
   const { status: jobStatus } = useJobStatus(currentJobId);
   const [scanPath, setScanPath] = useState('');
 
@@ -110,6 +110,54 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 md:py-8">
       <h1 className="text-2xl font-bold text-text mb-6">设置</h1>
+
+      {/* 一键处理 */}
+      <Section title="一键处理">
+        <div className="space-y-2">
+          <p className="text-xs text-text-light">按顺序自动执行：扫描 → Embedding → 人脸检测 → 人脸聚类 → 事件生成</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={scanPath}
+              onChange={(e) => setScanPath(e.target.value)}
+              placeholder="输入扫描路径，留空使用默认目录"
+              className="flex-1 px-3 py-2.5 rounded-btn bg-misty/30 text-sm text-text placeholder:text-text-light/60 border border-misty focus:outline-none focus:border-primary transition-colors"
+            />
+          </div>
+          <ActionButton label="一键处理全部" onClick={() => startProcessAll(scanPath || undefined)} />
+          {jobStatus && (
+            <div className="glass-card rounded-card p-3 text-sm">
+              <div className="flex justify-between text-text-light mb-1">
+                <span>
+                  {jobStatus.status === 'running'
+                    ? (jobStatus as any).message || '处理中...'
+                    : jobStatus.status === 'completed'
+                    ? '全部完成'
+                    : jobStatus.status === 'failed'
+                    ? '处理失败'
+                    : jobStatus.status}
+                </span>
+                <span>{jobStatus.progress.toFixed(0)}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-misty rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-500"
+                  style={{ width: `${jobStatus.progress}%` }}
+                />
+              </div>
+              {(jobStatus as any).stage && (jobStatus as any).stage !== 'done' && (
+                <p className="text-xs text-primary mt-1">步骤 {(jobStatus as any).step}/{(jobStatus as any).total_steps || 5}: {(jobStatus as any).message}</p>
+              )}
+              {jobStatus.status === 'failed' && (
+                <p className="text-xs text-red-400 mt-1">{(jobStatus as any).error}</p>
+              )}
+              {jobStatus.status === 'completed' && (
+                <p className="text-xs text-text-light mt-1">全部 5 步处理完成，可刷新统计查看结果</p>
+              )}
+            </div>
+          )}
+        </div>
+      </Section>
 
       {/* 媒体管理 */}
       <Section title="媒体管理">

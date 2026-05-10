@@ -62,7 +62,7 @@ export default function PeoplePage() {
             {selectedCluster.label || `人物 ${selectedCluster.id}`}
           </h2>
           {clusterMedia.length > 0 ? (
-            <PhotoGrid items={clusterMedia} onItemClick={(id) => navigate(`/photo/${id}`)} />
+            <PhotoGrid items={clusterMedia} onItemClick={(id) => navigate(`/photo/${id}`, { state: { from: '/people' } })} />
           ) : (
             <p className="text-text-light text-center py-8">暂无照片</p>
           )}

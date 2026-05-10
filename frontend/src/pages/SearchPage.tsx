@@ -73,7 +73,7 @@ export default function SearchPage() {
           </p>
           <PhotoGrid
             items={currentResults.results}
-            onItemClick={(id) => navigate(`/photo/${id}`)}
+            onItemClick={(id) => navigate(`/photo/${id}`, { state: { from: '/search' } })}
           />
         </div>
       )}

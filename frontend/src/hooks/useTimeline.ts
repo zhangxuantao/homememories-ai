@@ -45,7 +45,11 @@ export function useEventMedia(eventId: number | null) {
       limit: 100,
     })
       .then((res) => {
-        setItems((prev) => [...prev, ...res.items]);
+        setItems((prev) => {
+          const existingIds = new Set(prev.map((i) => i.id));
+          const newItems = res.items.filter((i) => !existingIds.has(i.id));
+          return [...prev, ...newItems];
+        });
         setNextCursor(res.next_cursor);
         setHasMore(!!res.next_cursor);
       })

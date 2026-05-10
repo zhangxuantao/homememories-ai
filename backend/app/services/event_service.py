@@ -8,7 +8,7 @@ from app.services.scan_service import JobTracker
 # Photos within this many hours of the previous photo belong to the same event
 GAP_HOURS = 3
 # Minimum photos required to form an event
-MIN_PHOTOS = 3
+MIN_PHOTOS = 1
 
 
 def _parse_dt(iso_string: str | None) -> datetime | None:

@@ -16,4 +16,4 @@ def generate_thumbnail(
     if img.mode in ("RGBA", "P"):
         img = img.convert("RGB")
     img.save(thumb_path, "JPEG", quality=80)
-    return thumb_path
+    return os.path.relpath(thumb_path, thumb_dir)

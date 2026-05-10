@@ -50,16 +50,11 @@ export default function TimelinePage() {
 }
 
 function EventItem({ event, navigate }: { event: TimelineEvent; navigate: ReturnType<typeof useNavigate> }) {
-  const [expanded, setExpanded] = useState(false);
-  const { items } = useEventMedia(expanded ? event.id : null);
+  const { items } = useEventMedia(event.id);
 
-  const handleClick = () => {
-    if (!expanded) {
-      setExpanded(true);
-    } else if (items.length > 0) {
-      navigate(`/photo/${items[0].id}`);
-    }
+  const handlePhotoClick = (mediaId: number) => {
+    navigate(`/photo/${mediaId}`, { state: { from: '/timeline' } });
   };
 
-  return <EventStrip event={event} media={items} onClick={handleClick} />;
+  return <EventStrip event={event} media={items} onPhotoClick={handlePhotoClick} />;
 }

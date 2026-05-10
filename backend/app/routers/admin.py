@@ -5,6 +5,7 @@ from app.services.scan_service import (
     get_scan_status,
     get_job_status,
     get_system_stats,
+    start_process_all,
 )
 from app.services.search_service import generate_embeddings
 from app.services.quality_service import (
@@ -46,6 +47,13 @@ def start_embedding_generation():
     job_id = generate_embeddings()
     status = get_job_status(job_id)
     return status.model_dump()
+
+
+@router.post("/process-all")
+def start_process_all_endpoint(path: str | None = Query(None)):
+    """Run the full pipeline: Scan → Embeddings → Face Detection → Clustering → Events."""
+    job_id = start_process_all(source_dir=path)
+    return get_job_status(job_id).model_dump()
 
 
 # ── Cleanup / Quality endpoints ──────────────────────────────────────────────
