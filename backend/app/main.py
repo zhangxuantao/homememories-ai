@@ -40,12 +40,14 @@ def create_app() -> FastAPI:
     from app.routers.admin import router as admin_router
     from app.routers.search import router as search_router
     from app.routers.faces import router as faces_router
+    from app.routers.upload import router as upload_router
 
     app.include_router(timeline_router)
     app.include_router(media_router)
     app.include_router(admin_router)
     app.include_router(search_router)
     app.include_router(faces_router)
+    app.include_router(upload_router)
 
     # Ensure directories exist before mounting static files
     os.makedirs(settings.media_root, exist_ok=True)
