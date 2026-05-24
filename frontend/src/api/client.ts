@@ -68,6 +68,13 @@ export interface FaceCluster {
   cover_thumbnail: string | null;
 }
 
+export interface ServerInfo {
+  hostname: string;
+  lan_ip: string;
+  port: number;
+  frontend_port: number;
+}
+
 // ── API Client ──
 
 const BASE_URL = '';
@@ -167,6 +174,10 @@ class ApiClient {
   originalUrl(mediaId: number, _path?: string): string {
     const base = this.baseUrl || '';
     return `${base}/api/media/${mediaId}/file`;
+  }
+
+  async getServerInfo(): Promise<ServerInfo> {
+    return this.get<ServerInfo>('/api/admin/server-info');
   }
 }
 

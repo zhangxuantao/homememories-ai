@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAdminStats, useJobStatus, useAdminActions } from '../hooks/useAdmin';
-import { api, MediaItem } from '../api/client';
+import { api, MediaItem, ServerInfo } from '../api/client';
+import QrCode from '../components/ui/QrCode';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -73,6 +74,17 @@ export default function SettingsPage() {
   const [showBlurry, setShowBlurry] = useState(false);
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
+
+  const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
+  const frontendUrl = window.location.origin;
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    api.getServerInfo().then(setServerInfo).catch(() => {});
+  }, []);
+
+  const isLan = (ip: string) =>
+    /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(ip);
 
   const formatBytes = (bytes: number) => {
     if (bytes > 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -262,6 +274,40 @@ export default function SettingsPage() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      </Section>
+
+      {/* 局域网访问 */}
+      <Section title="局域网访问">
+        <div className="flex flex-col items-center gap-3">
+          <QrCode url={frontendUrl} size={180} />
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-text break-all max-w-[240px]">{frontendUrl}</span>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(frontendUrl).then(() => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }).catch(() => {});
+              }}
+              className="shrink-0 px-2 py-1 text-xs text-primary border border-primary rounded-btn hover:bg-primary hover:text-white transition-colors"
+            >
+              {copied ? '已复制' : '复制地址'}
+            </button>
+          </div>
+          <p className="text-xs text-text-light text-center leading-relaxed max-w-[280px]">
+            用相机或浏览器扫码直接打开；微信扫码请点击右上角"在浏览器中打开"
+          </p>
+          <div className="flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full ${serverInfo && isLan(serverInfo.lan_ip) ? 'bg-green-400' : 'bg-yellow-400'}`} />
+            <span className="text-xs text-text-light">
+              {serverInfo && isLan(serverInfo.lan_ip)
+                ? '当前已连接局域网'
+                : serverInfo
+                  ? '未检测到局域网地址'
+                  : '检测中...'}
+            </span>
           </div>
         </div>
       </Section>
