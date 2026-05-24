@@ -152,9 +152,41 @@ def server_info():
         s.close()
     except Exception:
         pass
+
+    # GPU info — fail gracefully
+    gpu = {"cuda_available": False, "device_name": None, "device_count": 0,
+           "memory_total_gb": None, "memory_used_gb": None}
+    try:
+        import torch
+        gpu["cuda_available"] = torch.cuda.is_available()
+        if gpu["cuda_available"]:
+            gpu["device_name"] = torch.cuda.get_device_name(0)
+            gpu["device_count"] = torch.cuda.device_count()
+            gpu["memory_total_gb"] = round(
+                torch.cuda.get_device_properties(0).total_memory / 1e9, 1
+            )
+            gpu["memory_used_gb"] = round(
+                torch.cuda.memory_allocated(0) / 1e9, 2
+            )
+    except Exception:
+        pass
+
+    # Model status
+    models = {"clip_loaded": False, "clip_device": "not_loaded"}
+    try:
+        from app.ai.embedding import EmbeddingPipeline
+        inst = EmbeddingPipeline()
+        if inst._initialized:
+            models["clip_loaded"] = True
+            models["clip_device"] = str(inst.device)
+    except Exception:
+        pass
+
     return {
         "hostname": hostname,
         "lan_ip": lan_ip,
         "port": 8501,
         "frontend_port": 5173,
+        "gpu": gpu,
+        "models": models,
     }
