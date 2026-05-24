@@ -68,11 +68,26 @@ export interface FaceCluster {
   cover_thumbnail: string | null;
 }
 
+export interface GpuInfo {
+  cuda_available: boolean;
+  device_name: string | null;
+  device_count: number;
+  memory_total_gb: number | null;
+  memory_used_gb: number | null;
+}
+
+export interface ModelInfo {
+  clip_loaded: boolean;
+  clip_device: string;
+}
+
 export interface ServerInfo {
   hostname: string;
   lan_ip: string;
   port: number;
   frontend_port: number;
+  gpu: GpuInfo;
+  models: ModelInfo;
 }
 
 // ── API Client ──
@@ -190,6 +205,27 @@ class ApiClient {
 
   async getServerInfo(): Promise<ServerInfo> {
     return this.get<ServerInfo>('/api/admin/server-info');
+  }
+
+  async toggleFavorite(mediaId: number): Promise<{ favorited: boolean }> {
+    return this.post<{ favorited: boolean }>(`/api/favorites/${mediaId}`);
+  }
+
+  async getFavorites(limit?: number, offset?: number): Promise<MediaItem[]> {
+    return this.get<MediaItem[]>('/api/favorites', { limit, offset });
+  }
+
+  async getRecentFavorites(limit?: number): Promise<MediaItem[]> {
+    return this.get<MediaItem[]>('/api/favorites/recent', { limit });
+  }
+
+  async checkFavorites(ids: number[]): Promise<Record<string, boolean>> {
+    if (ids.length === 0) return {};
+    return this.get<Record<string, boolean>>(`/api/favorites/check?ids=${ids.join(',')}`);
+  }
+
+  async deleteDuplicateMedia(keepId: number, deleteIds: number[]): Promise<{ deleted: number }> {
+    return this.delete<{ deleted: number }>('/api/admin/cleanup/duplicates', { keep_id: keepId, delete_ids: deleteIds });
   }
 }
 
