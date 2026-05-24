@@ -1,7 +1,9 @@
 # backend/app/routers/media.py
 import os
+import zipfile
+import io
 from fastapi import APIRouter, Query, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from app.services.media_service import (
     get_media_by_id,
     get_media_random,
@@ -69,3 +71,35 @@ def delete_media_endpoint(media_id: int):
     if not success:
         raise HTTPException(status_code=404, detail="Media not found")
     return {"deleted": True}
+
+
+@router.post("/export-zip")
+def export_zip(ids: list[int]):
+    """Stream selected media as a zip file download."""
+    from app.database import get_connection
+    from app.config import settings
+
+    conn = get_connection()
+    placeholders = ",".join("?" * len(ids))
+    rows = conn.execute(
+        f"SELECT id, path, filename FROM media WHERE id IN ({placeholders})",
+        ids,
+    ).fetchall()
+    conn.close()
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for row in rows:
+            path = row["path"]
+            if not os.path.isabs(path):
+                path = os.path.join(settings.media_root, path)
+            filename = row["filename"]
+            if os.path.exists(path):
+                zf.write(path, f"{row['id']}_{filename}")
+
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=homememories_export.zip"},
+    )

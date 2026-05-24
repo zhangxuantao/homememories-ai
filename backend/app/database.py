@@ -78,6 +78,26 @@ CREATE TABLE IF NOT EXISTS search_cache (
     created_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS albums (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    cover_media_id INTEGER,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (cover_media_id) REFERENCES media(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS album_media (
+    album_id INTEGER,
+    media_id INTEGER,
+    sort_order INTEGER,
+    PRIMARY KEY (album_id, media_id),
+    FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_album_media_album ON album_media(album_id);
+
 CREATE INDEX IF NOT EXISTS idx_media_date ON media(date_taken);
 CREATE INDEX IF NOT EXISTS idx_media_type ON media(media_type);
 CREATE INDEX IF NOT EXISTS idx_media_checksum ON media(checksum);
