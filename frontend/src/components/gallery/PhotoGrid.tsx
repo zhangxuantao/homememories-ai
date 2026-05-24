@@ -17,7 +17,7 @@ export default function PhotoGrid({ items, onItemClick, selection }: PhotoGridPr
   }
 
   return (
-    <div className={`grid grid-cols-3 md:grid-cols-5 gap-2 ${selectMode ? 'mt-12 mb-28' : ''}`}>
+    <div className={`grid grid-cols-3 md:grid-cols-5 gap-2 ${selectMode ? 'mt-12 mb-14' : ''}`}>
       {items.map((item) => {
         const isSel = sel?.isSelected(item.id) ?? false;
         return (

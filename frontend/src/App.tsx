@@ -45,7 +45,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white">
       <DesktopRail />
-      <main className="md:ml-14 pb-28 md:pb-0">
+      <main className="md:ml-14 pb-14 md:pb-0">
         <AnimatePresence mode="wait">
           <Suspense fallback={<PageLoader />}>
             <Routes location={location} key={location.pathname}>
