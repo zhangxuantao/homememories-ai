@@ -96,6 +96,13 @@ CREATE TABLE IF NOT EXISTS album_media (
     FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS favorites (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    media_id INTEGER NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_album_media_album ON album_media(album_id);
 
 CREATE INDEX IF NOT EXISTS idx_media_date ON media(date_taken);
@@ -105,6 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_media_dhash ON media(dhash);
 CREATE INDEX IF NOT EXISTS idx_faces_cluster ON faces(cluster_id);
 CREATE INDEX IF NOT EXISTS idx_faces_media ON faces(media_id);
 CREATE INDEX IF NOT EXISTS idx_event_media_event ON event_media(event_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_created ON favorites(created_at DESC);
 """
 
 
