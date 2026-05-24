@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAdminStats, useJobStatus, useAdminActions } from '../hooks/useAdmin';
 import { api, MediaItem, ServerInfo } from '../api/client';
 import QrCode from '../components/ui/QrCode';
+import PhotoGrid from '../components/gallery/PhotoGrid';
+import { useSelection } from '../hooks/useSelection';
+import SelectionBar from '../components/gallery/SelectionBar';
+import SelectionActions from '../components/gallery/SelectionActions';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -75,6 +80,9 @@ export default function SettingsPage() {
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
 
+  const navigate = useNavigate();
+  const blurrySelection = useSelection();
+
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
   const frontendUrl = window.location.origin;
   const [copied, setCopied] = useState(false);
@@ -106,6 +114,19 @@ export default function SettingsPage() {
       const pairs = await fetchDuplicatePairs();
       setDuplicatePairs(pairs);
     }
+  };
+
+  const handleBlurryBatchDelete = async () => {
+    const ids = Array.from(blurrySelection.selectedIds);
+    if (!confirm(`确定删除这 ${ids.length} 张模糊照片？此操作不可恢复。`)) return;
+    for (const id of ids) {
+      try {
+        await api.delete(`/api/media/${id}`);
+      } catch {}
+    }
+    blurrySelection.exitSelectMode();
+    const items = await fetchBlurryMedia();
+    setBlurryItems(items);
   };
 
   const handleDeleteBlurry = async (id: number) => {
@@ -228,20 +249,37 @@ export default function SettingsPage() {
                   {blurryItems.length === 0 ? '没有检测到模糊照片' : `找到 ${blurryItems.length} 张模糊照片`}
                 </p>
                 {blurryItems.length > 0 && (
-                  <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
-                    {blurryItems.map(item => (
-                      <div key={item.id} className="relative group">
-                        <ThumbTile item={item} api={api} />
-                        <button
-                          onClick={() => handleDeleteBlurry(item.id)}
-                          disabled={deletingIds.has(item.id)}
-                          className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                          title="删除"
-                        >
-                          {deletingIds.has(item.id) ? '...' : '✕'}
-                        </button>
-                      </div>
-                    ))}
+                  <div>
+                    <button
+                      onClick={() => blurrySelection.enterSelectMode()}
+                      className="text-xs text-primary mb-2 hover:underline"
+                    >
+                      批量选择删除
+                    </button>
+                    {blurrySelection.selectMode && (
+                      <>
+                        <SelectionBar
+                          count={blurrySelection.selectedCount}
+                          onSelectAll={() => blurrySelection.selectAll(blurryItems.map(item => item.id))}
+                          onClearAll={() => blurrySelection.selectAll([])}
+                          onExit={blurrySelection.exitSelectMode}
+                        />
+                        <div className="flex justify-center gap-4 my-3">
+                          <button
+                            onClick={handleBlurryBatchDelete}
+                            disabled={blurrySelection.selectedCount === 0}
+                            className="px-4 py-1.5 bg-red-500 text-white rounded-btn text-sm disabled:opacity-50"
+                          >
+                            删除选中 ({blurrySelection.selectedCount})
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    <PhotoGrid
+                      items={blurryItems}
+                      onItemClick={(id) => navigate(`/photo/${id}`, { state: { from: '/settings' } })}
+                      selection={blurrySelection}
+                    />
                   </div>
                 )}
               </div>
