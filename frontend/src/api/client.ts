@@ -133,6 +133,18 @@ class ApiClient {
     return res.json();
   }
 
+  async uploadFormData<T>(path: string, formData: FormData): Promise<T> {
+    const res = await fetch(this.buildUrl(path), {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`${res.status} ${res.statusText}: ${text}`);
+    }
+    return res.json();
+  }
+
   async delete<T>(path: string, body?: unknown): Promise<T> {
     const res = await fetch(this.buildUrl(path), {
       method: 'DELETE',
