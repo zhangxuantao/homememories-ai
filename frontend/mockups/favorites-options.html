@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>收藏功能 - 三种设计方案对比</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f8f4f0; color:#3d3226; }
+
+  .container { max-width: 1000px; margin:0 auto; padding:24px; }
+  h1 { font-size:24px; margin-bottom:8px; }
+  .subtitle { color:#8b7355; margin-bottom:32px; font-size:14px; }
+
+  .options { display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; }
+  .option-card { background:#fff; border-radius:16px; overflow:hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .option-header { padding:16px 20px; border-bottom:1px solid #f0ebe3; display:flex; align-items:center; gap:12px; }
+  .option-badge { width:32px; height:32px; border-radius:8px; background:#e8a0b4; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
+  .option-title { font-weight:600; font-size:16px; }
+  .option-desc { font-size:12px; color:#8b7355; }
+
+  .option-body { padding:16px; }
+
+  /* Phone frame */
+  .phone { width:280px; height:580px; margin:0 auto; background:#fff; border-radius:32px; border:3px solid #e0d6c8; overflow:hidden; position:relative; }
+  .phone-notch { width:100px; height:24px; background:#e0d6c8; border-radius:0 0 16px 16px; margin:0 auto; }
+  .phone-content { height:556px; overflow-y:auto; padding:8px 0 60px 0; }
+  .phone-content::-webkit-scrollbar { display:none; }
+
+  /* Home sections */
+  .home-section { padding:12px 16px; }
+  .home-section h3 { font-size:13px; font-weight:600; margin-bottom:8px; color:#5c4a3a; }
+
+  /* Horizontal scroll strip */
+  .h-scroll { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
+  .h-scroll::-webkit-scrollbar { display:none; }
+  .h-thumb { flex-shrink:0; width:56px; height:56px; border-radius:10px; background:#e8d5c8; overflow:hidden; }
+  .h-thumb img { width:100%; height:100%; object-fit:cover; }
+
+  /* Grid */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .grid-item { aspect-ratio:1; border-radius:12px; background:#e8d5c8; overflow:hidden; }
+  .grid-item img { width:100%; height:100%; object-fit:cover; }
+
+  /* 4/3 card */
+  .card-43 { aspect-ratio:4/3; border-radius:12px; background:#e8d5c8; overflow:hidden; }
+  .card-43 img { width:100%; height:100%; object-fit:contain; background:#1a1a1a; }
+
+  /* Mock photos */
+  .mock-photo { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:28px; }
+  .p1 { background:linear-gradient(135deg,#a8d8ea,#aa96da); }
+  .p2 { background:linear-gradient(135deg,#f8b195,#f67280); }
+  .p3 { background:linear-gradient(135deg,#c1dfc4,#deecdd); }
+  .p4 { background:linear-gradient(135deg,#f4d03f,#f39c12); }
+  .p5 { background:linear-gradient(135deg,#a8e6cf,#dcedc1); }
+  .p6 { background:linear-gradient(135deg,#ffd3b6,#d5aa7d); }
+  .p7 { background:linear-gradient(135deg,#b8c6db,#8ca6db); }
+  .p8 { background:linear-gradient(135deg,#fbc2eb,#a6c1ee); }
+
+  /* Bottom nav */
+  .bottom-nav { position:absolute; bottom:0; left:0; right:0; height:52px; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); border-top:1px solid #f0ebe3; display:flex; align-items:flex-end; padding-bottom:4px; }
+  .nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:9px; color:#b8a896; }
+  .nav-item .icon { font-size:18px; }
+  .nav-item.active { color:#e8a0b4; font-weight:600; }
+
+  /* Lightbox top bar mock */
+  .lightbox-bar { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(0,0,0,0.7); border-radius:12px; color:#fff; font-size:13px; }
+  .lb-actions { display:flex; gap:8px; }
+  .lb-btn { width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,0.15); border:none; color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .lb-btn.fav { color:#f8b195; }
+  .lb-btn.fav.active { color:#f67280; background:rgba(246,114,128,0.3); }
+
+  /* Labels */
+  .label { display:inline-block; font-size:10px; padding:2px 8px; border-radius:10px; margin-bottom:8px; }
+  .label-new { background:#fef3f5; color:#e8a0b4; border:1px solid #fde4e9; }
+
+  /* Vote section */
+  .vote-section { margin-top:40px; padding:24px; background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+  .vote-section h2 { font-size:18px; margin-bottom:16px; }
+  .pro-con { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px; }
+  .pro, .con { padding:12px; border-radius:10px; font-size:13px; line-height:1.6; }
+  .pro { background:#f0f9f0; }
+  .pro::before { content:'✅ 优点'; display:block; font-weight:600; margin-bottom:6px; }
+  .con { background:#fef8f4; }
+  .con::before { content:'⚠️ 代价'; display:block; font-weight:600; margin-bottom:6px; }
+
+  .rec { margin-top:16px; padding:12px 16px; background:#fdf2f8; border-radius:10px; font-size:14px; border-left:3px solid #e8a0b4; }
+  .rec strong { color:#d4778c; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔖 收藏功能 — 三种设计方案</h1>
+  <p class="subtitle">核心交互：Lightbox 中点击 ♡ 收藏 → 已收藏照片的展示方式</p>
+
+  <div class="options">
+    <!-- Option A -->
+    <div class="option-card">
+      <div class="option-header">
+        <div class="option-badge">A</div>
+        <div>
+          <div class="option-title">首页收藏卡片流</div>
+          <div class="option-desc">HomePage 新增"我的收藏"横向滚动条</div>
+        </div>
+      </div>
+      <div class="option-body">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-content">
+            <div class="home-section">
+              <h3>👤 去年今天</h3>
+              <div class="card-43"><div class="mock-photo p1">🏖️</div></div>
+            </div>
+            <div class="home-section">
+              <h3>🎲 随机回忆</h3>
+              <div class="grid-2">
+                <div class="grid-item"><div class="mock-photo p2">🌸</div></div>
+                <div class="grid-item"><div class="mock-photo p3">🌅</div></div>
+                <div class="grid-item"><div class="mock-photo p4">🎂</div></div>
+                <div class="grid-item"><div class="mock-photo p5">🐱</div></div>
+              </div>
+            </div>
+            <div class="home-section">
+              <h3><span class="label label-new">NEW</span> ❤️ 我的收藏</h3>
+              <div class="h-scroll">
+                <div class="h-thumb"><div class="mock-photo p6" style="font-size:16px;">⭐</div></div>
+                <div class="h-thumb"><div class="mock-photo p7" style="font-size:16px;">⭐</div></div>
+                <div class="h-thumb"><div class="mock-photo p8" style="font-size:16px;">⭐</div></div>
+                <div class="h-thumb"><div class="mock-photo p2" style="font-size:16px;">⭐</div></div>
+                <div class="h-thumb"><div class="mock-photo p3" style="font-size:16px;">⭐</div></div>
+                <div class="h-thumb"><div class="mock-photo p4" style="font-size:16px;">⭐</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="icon">🏠</span>首页</div>
+            <div class="nav-item"><span class="icon">📅</span>时间线</div>
+            <div class="nav-item"><span class="icon">🔍</span>搜索</div>
+            <div class="nav-item"><span class="icon">👤</span>人物</div>
+            <div class="nav-item"><span class="icon">⚙️</span>设置</div>
+          </div>
+        </div>
+        <div class="pro-con" style="margin-top:12px;">
+          <div class="pro">所有回忆集中首页<br>无需底部导航改动<br>实现最轻量</div>
+          <div class="con">收藏多了滚动条很长<br>无法快速筛选<br>翻看体验受首页布局限制</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Option B -->
+    <div class="option-card">
+      <div class="option-header">
+        <div class="option-badge">B</div>
+        <div>
+          <div class="option-title">独立收藏页</div>
+          <div class="option-desc">底部导航新增"收藏"Tab，独立页面</div>
+        </div>
+      </div>
+      <div class="option-body">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-content">
+            <!-- Favorites page content -->
+            <div style="padding:16px; display:flex; align-items:center; justify-content:space-between;">
+              <h3 style="font-size:18px;font-weight:700;">❤️ 我的收藏</h3>
+              <span style="font-size:12px;color:#8b7355;">共 12 张</span>
+            </div>
+            <!-- grid of favorites -->
+            <div style="padding:0 8px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; padding-bottom:60px;">
+              <div class="grid-item"><div class="mock-photo p1" style="font-size:16px;">⭐</div></div>
+              <div class="grid-item"><div class="mock-photo p2" style="font-size:16px;">⭐</div></div>
+              <div class="grid-item"><div class="mock-photo p3" style="font-size:16px;">⭐</div></div>
+              <div class="grid-item"><div class="mock-photo p4" style="font-size:16px;">⭐</div></div>
+              <div class="grid-item"><div class="mock-photo p5" style="font-size:16px;">⭐</div></div>
+              <div class="grid-item"><div class="mock-photo p6" style="font-size:16px;">⭐</div></div>
+              <div class="grid-item"><div class="mock-photo p7" style="font-size:16px;">⭐</div></div>
+              <div class="grid-item"><div class="mock-photo p8" style="font-size:16px;">⭐</div></div>
+              <div class="grid-item" style="background:#f5f0eb; display:flex; align-items:center; justify-content:center; font-size:11px; color:#8b7355;">+ 4 more</div>
+            </div>
+          </div>
+          <div class="bottom-nav">
+            <div class="nav-item"><span class="icon">🏠</span>首页</div>
+            <div class="nav-item"><span class="icon">📅</span>时间线</div>
+            <div class="nav-item active"><span class="icon">❤️</span>收藏</div>
+            <div class="nav-item"><span class="icon">🔍</span>搜索</div>
+            <div class="nav-item"><span class="icon">👤</span>人物</div>
+            <div class="nav-item"><span class="icon">⚙️</span>设置</div>
+          </div>
+        </div>
+        <div class="pro-con" style="margin-top:12px;">
+          <div class="pro">沉浸式浏览收藏<br>可按日期/人物再筛选<br>收藏量多也不影响首页</div>
+          <div class="con">底部导航从5变6个<br>首页看不到收藏动态<br>需要额外一次点击进入</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Option C -->
+    <div class="option-card">
+      <div class="option-header">
+        <div class="option-badge">C</div>
+        <div>
+          <div class="option-title">A+B 组合</div>
+          <div class="option-desc">首页展示最近6张 + 独立收藏Tab完整浏览</div>
+        </div>
+      </div>
+      <div class="option-body">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-content">
+            <div class="home-section">
+              <h3>👤 去年今天</h3>
+              <div class="card-43"><div class="mock-photo p1">🏖️</div></div>
+            </div>
+            <div class="home-section">
+              <h3>🎲 随机回忆</h3>
+              <div class="grid-2">
+                <div class="grid-item"><div class="mock-photo p2">🌸</div></div>
+                <div class="grid-item"><div class="mock-photo p3">🌅</div></div>
+                <div class="grid-item"><div class="mock-photo p4">🎂</div></div>
+                <div class="grid-item"><div class="mock-photo p5">🐱</div></div>
+              </div>
+            </div>
+            <div class="home-section">
+              <h3 style="display:flex;justify-content:space-between;align-items:center;">
+                <span>❤️ 最近收藏</span>
+                <span style="font-size:11px;color:#e8a0b4;font-weight:400;">查看全部 →</span>
+              </h3>
+              <div class="h-scroll">
+                <div class="h-thumb"><div class="mock-photo p6" style="font-size:16px;">⭐</div></div>
+                <div class="h-thumb"><div class="mock-photo p7" style="font-size:16px;">⭐</div></div>
+                <div class="h-thumb"><div class="mock-photo p8" style="font-size:16px;">⭐</div></div>
+                <div class="h-thumb"><div class="mock-photo p2" style="font-size:16px;">⭐</div></div>
+                <div class="h-thumb"><div class="mock-photo p3" style="font-size:16px;">⭐</div></div>
+                <div class="h-thumb"><div class="mock-photo p4" style="font-size:16px;">⭐</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="bottom-nav">
+            <div class="nav-item active"><span class="icon">🏠</span>首页</div>
+            <div class="nav-item"><span class="icon">📅</span>时间线</div>
+            <div class="nav-item"><span class="icon">❤️</span>收藏</div>
+            <div class="nav-item"><span class="icon">🔍</span>搜索</div>
+            <div class="nav-item"><span class="icon">👤</span>人物</div>
+            <div class="nav-item"><span class="icon">⚙️</span>设置</div>
+          </div>
+        </div>
+        <div class="pro-con" style="margin-top:12px;">
+          <div class="pro">首页快速感知 + 独立页沉浸浏览<br>API 复用同一套<br>最佳完整体验</div>
+          <div class="con">实现量最大（两处UI）<br>底部导航从5变6个<br>需要设计"最近"vs"全部"逻辑</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox mockup -->
+  <div class="vote-section" style="margin-top:24px;">
+    <h2>📸 Lightbox 收藏按钮（三个方案共用）</h2>
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="flex:1;min-width:250px;background:#1a1a1a;border-radius:16px;overflow:hidden;">
+        <div style="aspect-ratio:4/3;background:linear-gradient(135deg,#2d5a3d,#1a3d2d);display:flex;align-items:center;justify-content:center;font-size:64px;">🏞️</div>
+        <div class="lightbox-bar" style="border-radius:0;margin:0;">
+          <span>← 关闭</span>
+          <div class="lb-actions">
+            <button class="lb-btn">🔍</button>
+            <button class="lb-btn fav" style="font-size:20px;">♡</button>
+            <button class="lb-btn">⬇️</button>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:250px;background:#1a1a1a;border-radius:16px;overflow:hidden;">
+        <div style="aspect-ratio:4/3;background:linear-gradient(135deg,#2d5a3d,#1a3d2d);display:flex;align-items:center;justify-content:center;font-size:64px;">🌄</div>
+        <div class="lightbox-bar" style="border-radius:0;margin:0;">
+          <span>← 关闭</span>
+          <div class="lb-actions">
+            <button class="lb-btn">🔍</button>
+            <button class="lb-btn fav active" style="font-size:20px;">♥</button>
+            <button class="lb-btn">⬇️</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:12px;font-size:13px;color:#8b7355;">
+      左：未收藏状态（空心 ♡） → 右：已收藏状态（实心 ♥，粉红色高亮）<br>
+      按钮位置在 Lightbox 顶栏，<b>关闭 / 相似照片 / 收藏 / 下载</b> 四个按钮并排
+    </p>
+  </div>
+
+  <div class="rec" style="margin-top:24px;">
+    <strong>💡 推荐方案 C (A+B组合)</strong> — 理由：底部导航 6 个 Tab 刚好（与微信朋友圈、小红书类似），
+    首页横向滚动条提供即时感知（最近收藏不至于被遗忘），独立页面提供完整浏览体验。
+    只比方案 B 多了一个首页 section，实现成本差别不大。
+  </div>
+</div>
+</body>
+</html>
