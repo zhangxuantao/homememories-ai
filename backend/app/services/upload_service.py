@@ -60,6 +60,14 @@ def handle_uploaded_files(file_paths: list[str], original_names: list[str] | Non
                 date_taken = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
             except OSError:
                 pass
+        elif not date_taken.endswith('+00:00') and 'T' in date_taken and '+' not in date_taken.split('T')[1]:
+            # Normalize naive datetime to UTC-aware
+            try:
+                dt = datetime.fromisoformat(date_taken)
+                if dt.tzinfo is None:
+                    date_taken = dt.replace(tzinfo=timezone.utc).isoformat()
+            except (ValueError, TypeError):
+                pass
 
         file_size = os.path.getsize(filepath)
         cursor = conn.execute(
@@ -86,10 +94,11 @@ def handle_uploaded_files(file_paths: list[str], original_names: list[str] | Non
 
 
 def _start_async_processing(media_ids: list[int]) -> None:
-    """Background thread: dHash + blur detection for uploaded media."""
+    """Background thread: dHash + blur detection + embeddings + event regeneration."""
     def _run():
         from app.ai.quality import detect_blur
         from app.services.search_service import _generate_all_embeddings
+        from app.services.event_service import _generate_events
 
         conn = get_connection()
         for mid in media_ids:
@@ -113,6 +122,7 @@ def _start_async_processing(media_ids: list[int]) -> None:
 
         try:
             _generate_all_embeddings()
+            _generate_events()
         except Exception:
             pass
 

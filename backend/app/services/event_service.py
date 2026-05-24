@@ -15,7 +15,10 @@ def _parse_dt(iso_string: str | None) -> datetime | None:
     if iso_string is None:
         return None
     try:
-        return datetime.fromisoformat(iso_string)
+        dt = datetime.fromisoformat(iso_string)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
     except (ValueError, TypeError):
         return None
 
