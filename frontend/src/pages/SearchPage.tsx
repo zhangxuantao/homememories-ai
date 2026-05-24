@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTextSearch, useImageSearch } from '../hooks/useSearch';
+import { useSelection } from '../hooks/useSelection';
 import SearchBar from '../components/ui/SearchBar';
 import ImageUploader from '../components/ui/ImageUploader';
 import PhotoGrid from '../components/gallery/PhotoGrid';
+import SelectionBar from '../components/gallery/SelectionBar';
+import SelectionActions from '../components/gallery/SelectionActions';
+import { api } from '../api/client';
 
 type SearchMode = 'text' | 'image';
 
@@ -12,11 +16,67 @@ export default function SearchPage() {
   const [mode, setMode] = useState<SearchMode>('text');
   const textSearch = useTextSearch();
   const imageSearch = useImageSearch();
+  const selection = useSelection();
 
   const recentSearches: string[] = JSON.parse(localStorage.getItem('recentSearches') || '[]');
 
   const currentResults = mode === 'text' ? textSearch.results : imageSearch.results;
   const currentLoading = mode === 'text' ? textSearch.loading : imageSearch.loading;
+
+  const handleBatchDelete = async () => {
+    const ids = Array.from(selection.selectedIds);
+    if (!confirm(`确定删除这 ${ids.length} 张照片？此操作不可恢复。`)) return;
+    for (const id of ids) {
+      try { await api.delete(`/api/media/${id}`); } catch {}
+    }
+    selection.exitSelectMode();
+  };
+
+  const handleBatchDownload = async () => {
+    const ids = Array.from(selection.selectedIds);
+    if (ids.length <= 5) {
+      ids.forEach(id => window.open(api.originalUrl(id), '_blank'));
+    } else {
+      try {
+        const res = await fetch(`${window.location.origin}/api/media/export-zip`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(ids),
+        });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'homememories_export.zip';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('下载失败: ' + (err as Error).message);
+      }
+    }
+    selection.exitSelectMode();
+  };
+
+  const handleAddToAlbum = async () => {
+    try {
+      const albums = await api.get<{id: number; name: string}[]>('/api/albums');
+      const name = prompt('输入相册名称（已有相册：' + albums.map(a => a.name).join('、') + '）或新建:');
+      if (!name) return;
+
+      let albumId = albums.find(a => a.name === name)?.id;
+      if (!albumId) {
+        const created = await api.post<{id: number}>('/api/albums', { name });
+        albumId = created.id;
+      }
+
+      const ids = Array.from(selection.selectedIds);
+      await api.post(`/api/albums/${albumId}/media`, { media_ids: ids });
+      alert(`已加入 ${ids.length} 张到「${name}」`);
+    } catch (err) {
+      alert('操作失败: ' + (err as Error).message);
+    }
+    selection.exitSelectMode();
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 md:py-8">
@@ -71,9 +131,25 @@ export default function SearchPage() {
           <p className="text-sm text-text-light mb-3">
             找到 {currentResults.results.length} 个结果
           </p>
+          {selection.selectMode && (
+            <>
+              <SelectionBar
+                count={selection.selectedCount}
+                onSelectAll={() => selection.selectAll(currentResults.results.map(r => r.id))}
+                onClearAll={() => selection.selectAll([])}
+                onExit={selection.exitSelectMode}
+              />
+              <SelectionActions
+                onAddToAlbum={handleAddToAlbum}
+                onDownload={handleBatchDownload}
+                onDelete={handleBatchDelete}
+              />
+            </>
+          )}
           <PhotoGrid
             items={currentResults.results}
             onItemClick={(id) => navigate(`/photo/${id}`, { state: { from: '/search' } })}
+            selection={selection}
           />
         </div>
       )}
