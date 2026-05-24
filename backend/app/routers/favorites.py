@@ -9,6 +9,11 @@ router = APIRouter(prefix="/api/favorites", tags=["favorites"])
 @router.post("/{media_id}")
 def toggle_favorite(media_id: int):
     conn = get_connection()
+    media = conn.execute("SELECT id FROM media WHERE id = ?", (media_id,)).fetchone()
+    if not media:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Media not found")
+
     existing = conn.execute(
         "SELECT id FROM favorites WHERE media_id = ?", (media_id,)
     ).fetchone()
