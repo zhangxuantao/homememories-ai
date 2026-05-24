@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useOnThisDay, useRandomMedia } from '../hooks/useMedia';
 import { api } from '../api/client';
+import { useRecentFavorites } from '../hooks/useFavorites';
 
 const today = new Date();
 
@@ -23,9 +24,12 @@ export default function HomePage() {
       .slice(0, 4);
   }, [randomFirst.data, randomSecond.data]);
 
+  const { items: recentFavs } = useRecentFavorites(6);
+
   const onThisDayItems = onThisDay.data || [];
   const hasOnThisDay = onThisDayItems.length > 0;
   const hasRandom = randomItems.length > 0;
+  const hasRecentFavs = recentFavs.length > 0;
   const isEmpty = !hasOnThisDay && !hasRandom && !onThisDay.loading && !randomFirst.loading;
 
   if (isEmpty) {
@@ -107,6 +111,41 @@ export default function HomePage() {
               <div
                 key={item.id}
                 className="aspect-square rounded-card overflow-hidden bg-misty cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => navigate(`/photo/${item.id}`, { state: { from: '/' } })}
+              >
+                {item.thumbnail_path ? (
+                  <img
+                    src={api.thumbUrl(item.thumbnail_path)}
+                    alt={item.filename}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-2xl">📷</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Section 2.5: 最近收藏 */}
+      {hasRecentFavs && (
+        <section className="mb-8">
+          <h2 className="text-base font-semibold text-text mb-3 flex justify-between items-center">
+            <span>❤️ 最近收藏</span>
+            <button
+              onClick={() => navigate('/favorites')}
+              className="text-xs text-primary font-normal hover:underline"
+            >
+              查看全部 →
+            </button>
+          </h2>
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            {recentFavs.map((item) => (
+              <div
+                key={item.id}
+                className="flex-shrink-0 w-20 h-20 rounded-card overflow-hidden bg-misty cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => navigate(`/photo/${item.id}`, { state: { from: '/' } })}
               >
                 {item.thumbnail_path ? (
