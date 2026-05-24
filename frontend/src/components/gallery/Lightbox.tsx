@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useFavoriteStatus } from '../../hooks/useFavorites';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { MediaItem } from '../../api/client';
 import { api } from '../../api/client';
@@ -17,6 +18,7 @@ export default function Lightbox({ item, onClose, onPrev, onNext, onNavigate }: 
   const [showSimilar, setShowSimilar] = useState(false);
   const [similarItems, setSimilarItems] = useState<MediaItem[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
+  const { favorited, toggle: toggleFav } = useFavoriteStatus(item.id);
 
   // Reset when item changes
   useEffect(() => {
@@ -84,6 +86,13 @@ export default function Lightbox({ item, onClose, onPrev, onNext, onNavigate }: 
               className={`hover:text-primary transition-colors ${showSimilar ? 'text-primary' : ''}`}
             >
               {showSimilar ? '隐藏相似' : '相似照片'}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleFav(); }}
+              className={`transition-colors text-lg ${favorited ? 'text-[#f67280]' : 'text-white/60 hover:text-white'}`}
+              title={favorited ? '取消收藏' : '收藏'}
+            >
+              {favorited ? '♥' : '♡'}
             </button>
             <a
               href={displayUrl}
