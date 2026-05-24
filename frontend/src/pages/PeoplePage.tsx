@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { api, FaceCluster, MediaItem, PaginatedResponse } from '../api/client';
 import FaceCard from '../components/cards/FaceCard';
 import PhotoGrid from '../components/gallery/PhotoGrid';
+import { useSelection } from '../hooks/useSelection';
+import SelectionBar from '../components/gallery/SelectionBar';
+import SelectionActions from '../components/gallery/SelectionActions';
 
 export default function PeoplePage() {
   const navigate = useNavigate();
@@ -10,6 +13,7 @@ export default function PeoplePage() {
   const [loading, setLoading] = useState(true);
   const [selectedCluster, setSelectedCluster] = useState<FaceCluster | null>(null);
   const [clusterMedia, setClusterMedia] = useState<MediaItem[]>([]);
+  const selection = useSelection();
 
   useEffect(() => {
     api.get<FaceCluster[]>('/api/faces/clusters')
@@ -38,6 +42,47 @@ export default function PeoplePage() {
     }
   };
 
+  const handleBatchDownload = async () => {
+    const ids = Array.from(selection.selectedIds);
+    if (ids.length <= 5) {
+      ids.forEach(id => window.open(api.originalUrl(id), '_blank'));
+    } else {
+      try {
+        const res = await fetch(`${window.location.origin}/api/media/export-zip`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(ids),
+        });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'homememories_export.zip';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('下载失败');
+      }
+    }
+    selection.exitSelectMode();
+  };
+
+  const handleBatchDelete = async () => {
+    const ids = Array.from(selection.selectedIds);
+    if (!confirm(`确定删除这 ${ids.length} 张照片？此操作不可恢复。`)) return;
+    for (const id of ids) {
+      try { await api.delete(`/api/media/${id}`); } catch {}
+    }
+    selection.exitSelectMode();
+    // Refresh cluster media
+    if (selectedCluster) {
+      const res = await api.get<PaginatedResponse<MediaItem>>(
+        `/api/faces/cluster/${selectedCluster.id}/media`, { limit: 100 }
+      );
+      setClusterMedia(res.items);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -62,7 +107,30 @@ export default function PeoplePage() {
             {selectedCluster.label || `人物 ${selectedCluster.id}`}
           </h2>
           {clusterMedia.length > 0 ? (
-            <PhotoGrid items={clusterMedia} onItemClick={(id) => navigate(`/photo/${id}`, { state: { from: '/people' } })} />
+            <>
+              {selection.selectMode && (
+                <>
+                  <SelectionBar
+                    count={selection.selectedCount}
+                    onSelectAll={() => selection.selectAll(clusterMedia.map(item => item.id))}
+                    onClearAll={() => selection.selectAll([])}
+                    onExit={selection.exitSelectMode}
+                  />
+                  <SelectionActions
+                    onAddToAlbum={() => {}}
+                    onDownload={handleBatchDownload}
+                    onDelete={handleBatchDelete}
+                  />
+                </>
+              )}
+              <PhotoGrid
+                items={clusterMedia}
+                onItemClick={(id) => {
+                  if (!selection.selectMode) navigate(`/photo/${id}`, { state: { from: '/people' } });
+                }}
+                selection={selection}
+              />
+            </>
           ) : (
             <p className="text-text-light text-center py-8">暂无照片</p>
           )}
