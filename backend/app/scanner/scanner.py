@@ -7,7 +7,7 @@ from app.scanner.exif_extractor import extract_date_taken
 from app.scanner.thumbnail import generate_thumbnail
 from app.scanner.video_extractor import extract_video_info, generate_video_thumbnail
 
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff", ".tif"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff", ".tif", ".heic", ".heif"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"}
 
 

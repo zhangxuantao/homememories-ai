@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash(npm *)",
+      "Bash(git *)",
+      "Bash(cd *)",
+      "Bash(pnpm *)",
+      "Bash(bash *)",
+      "Bash(cp \"E:\\\\study\\\\github\\\\HomeMemories-AI\\\\.superpowers\\\\brainstorm\\\\672-1778072647\\\\content\\\\project-structure.html\" \"E:\\\\study\\\\github\\\\HomeMemories-AI\\\\.superpowers\\\\brainstorm\\\\693-1778076050\\\\content\\\\project-structure.html\")",
+      "Bash(cp \"E:\\\\study\\\\github\\\\HomeMemories-AI\\\\.superpowers\\\\brainstorm\\\\672-1778072647\\\\content\\\\visual-style.html\" \"E:\\\\study\\\\github\\\\HomeMemories-AI\\\\.superpowers\\\\brainstorm\\\\693-1778076050\\\\content\\\\visual-style.html\")",
+      "Bash(npx tsc *)",
+      "Bash(python scripts/seed_mock_data.py --reset)",
+      "Bash(curl *)",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(timeout 8 npx vite --host 0.0.0.0)",
+      "Bash(gh repo *)",
+      "Bash(npx vite *)",
+      "Bash(netstat -ano)",
+      "Bash(awk '{print $5}')",
+      "Bash(powershell -Command \"Stop-Process -Id 8604 -Force; Stop-Process -Id 24080 -Force\")",
+      "Bash(powershell *)",
+      "mcp__plugin_superpowers-chrome_chrome__use_browser",
+      "Bash(powershell -Command \"Get-Process -Name python* | Stop-Process -Force\")",
+      "Bash(HF_ENDPOINT=https://hf-mirror.com python -m uvicorn app.main:app --host 0.0.0.0 --port 8501)",
+      "Bash(pip install *)",
+      "Bash(conda --version)",
+      "Bash(pipwin install *)",
+      "Bash(pip show *)",
+      "Bash(pip uninstall *)",
+      "Bash(unzip -o buffalo_l.zip -d buffalo_l)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Read(./.env*)"
+    ]
+  }
+}

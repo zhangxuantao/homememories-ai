@@ -7,7 +7,7 @@ interface UploadPanelProps {
 }
 
 export default function UploadPanel({ open, onClose }: UploadPanelProps) {
-  const { selectedFiles, uploading, progress, result, addFiles, removeFile, upload, reset } = useUpload();
+  const { selectedFiles, uploading, progress, currentFile, result, addFiles, removeFile, upload, reset } = useUpload();
   const inputRef = useRef<HTMLInputElement>(null);
 
   if (!open) return null;
@@ -89,7 +89,9 @@ export default function UploadPanel({ open, onClose }: UploadPanelProps) {
               <div className="w-full h-2 bg-misty rounded-full overflow-hidden">
                 <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
               </div>
-              <p className="text-xs text-text-light text-center">上传中...</p>
+              <p className="text-xs text-text-light text-center truncate">
+                {currentFile ? `正在上传: ${currentFile}` : '上传中...'}
+              </p>
             </div>
           )}
 
@@ -97,7 +99,9 @@ export default function UploadPanel({ open, onClose }: UploadPanelProps) {
           {isDone && result && (
             <div className="text-center py-4 space-y-3">
               <p className="text-3xl">✅</p>
-              <p className="text-text font-medium">{result.uploaded.length} 张已上传，后台处理中...</p>
+              <p className="text-text font-medium">
+                {result.uploaded.length} 张已上传{result.failed.length > 0 ? `，${result.failed.length} 张失败` : ''}，后台处理中...
+              </p>
               <button onClick={handleClose} className="inline-block px-5 py-2 bg-primary text-white rounded-btn text-sm">
                 去查看
               </button>

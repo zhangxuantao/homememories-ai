@@ -12,6 +12,7 @@ MAX_FILES = 100
 
 ALLOWED_EXTENSIONS = {
     ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff", ".tif",
+    ".heic", ".heif",
     ".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v",
 }
 
