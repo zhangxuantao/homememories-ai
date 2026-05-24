@@ -1,4 +1,6 @@
 # backend/app/routers/admin.py
+import socket
+
 from fastapi import APIRouter, Query, HTTPException
 from app.services.scan_service import (
     start_scan_job,
@@ -119,3 +121,22 @@ def job_status(job_id: str):
     if result is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return result.model_dump()
+
+
+@router.get("/server-info")
+def server_info():
+    hostname = socket.gethostname()
+    lan_ip = ""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        lan_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        pass
+    return {
+        "hostname": hostname,
+        "lan_ip": lan_ip,
+        "port": 8501,
+        "frontend_port": 5173,
+    }
