@@ -1,6 +1,7 @@
 # backend/app/routers/admin.py
 import socket
 
+from pydantic import BaseModel
 from fastapi import APIRouter, Query, HTTPException
 from app.services.scan_service import (
     start_scan_job,
@@ -91,6 +92,23 @@ def delete_blurry_media(ids: list[int]):
     for media_id in ids:
         success = delete_media(media_id)
         deleted.append({"id": media_id, "deleted": success})
+    return {"deleted": deleted}
+
+
+class DeleteDuplicatesRequest(BaseModel):
+    keep_id: int
+    delete_ids: list[int]
+
+
+@router.delete("/cleanup/duplicates")
+def delete_duplicate_media(body: DeleteDuplicatesRequest):
+    deleted = 0
+    for mid in body.delete_ids:
+        try:
+            delete_media(mid)
+            deleted += 1
+        except Exception:
+            pass
     return {"deleted": deleted}
 
 
