@@ -82,6 +82,7 @@ export default function SettingsPage() {
 
   const navigate = useNavigate();
   const blurrySelection = useSelection();
+  const duplicateSelection = useSelection();
 
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
   const frontendUrl = window.location.origin;
@@ -138,6 +139,30 @@ export default function SettingsPage() {
       next.delete(id);
       return next;
     });
+  };
+
+  const handleDuplicateBatchDelete = async () => {
+    if (!duplicatePairs) return;
+    const selectedIds = duplicateSelection.selectedIds;
+    if (selectedIds.size === 0) return;
+    if (!confirm(`确定删除这 ${selectedIds.size} 张重复照片？此操作不可恢复。`)) return;
+
+    for (const pair of duplicatePairs) {
+      const deleteIds = pair
+        .map((m: MediaItem) => m.id)
+        .filter((id: number) => selectedIds.has(id));
+      if (deleteIds.length > 0 && deleteIds.length < pair.length) {
+        const keepId = pair.find((m: MediaItem) => !selectedIds.has(m.id))?.id;
+        if (keepId) {
+          try {
+            await api.deleteDuplicateMedia(keepId, deleteIds);
+          } catch {}
+        }
+      }
+    }
+    duplicateSelection.exitSelectMode();
+    const fresh = await fetchDuplicatePairs();
+    setDuplicatePairs(fresh);
   };
 
   return (
@@ -294,20 +319,84 @@ export default function SettingsPage() {
             </div>
             {showDuplicates && duplicatePairs !== null && (
               <div className="mt-3">
-                <p className="text-sm text-text-light mb-2">
-                  {duplicatePairs.length === 0 ? '没有检测到重复照片' : `找到 ${duplicatePairs.length} 组重复照片`}
-                </p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-text-light">
+                    {duplicatePairs.length === 0 ? '没有检测到重复照片' : `找到 ${duplicatePairs.length} 组重复照片`}
+                  </p>
+                  {duplicatePairs.length > 0 && !duplicateSelection.selectMode && (
+                    <button
+                      onClick={() => duplicateSelection.enterSelectMode()}
+                      className="text-xs text-primary border border-primary px-2 py-0.5 rounded-btn hover:bg-primary hover:text-white transition-colors"
+                    >
+                      批量选择
+                    </button>
+                  )}
+                </div>
+
+                {duplicateSelection.selectMode && (
+                  <SelectionBar
+                    count={duplicateSelection.selectedCount}
+                    onSelectAll={() => duplicateSelection.selectAll(duplicatePairs.flat().map(m => m.id))}
+                    onClearAll={() => duplicateSelection.selectAll([])}
+                    onExit={duplicateSelection.exitSelectMode}
+                  />
+                )}
+
                 {duplicatePairs.length > 0 && (
                   <div className="space-y-3">
-                    {duplicatePairs.map((pair, i) => (
-                      <div key={i} className="glass-card rounded-card p-2">
-                        <p className="text-xs text-text-light mb-1">重复组 {i + 1}</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <ThumbTile item={pair[0]} api={api} />
-                          <ThumbTile item={pair[1]} api={api} />
+                    {duplicatePairs.map((pair, i) => {
+                      return (
+                        <div key={i} className="glass-card rounded-card p-2">
+                          <p className="text-xs text-text-light mb-1">重复组 {i + 1}</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {pair.map((item: MediaItem) => {
+                              const isSel = duplicateSelection.isSelected(item.id);
+                              return (
+                                <div
+                                  key={item.id}
+                                  className={`relative rounded-lg overflow-hidden bg-misty/50 cursor-pointer transition-all ${
+                                    duplicateSelection.selectMode
+                                      ? isSel
+                                        ? 'ring-2 ring-red-400 ring-offset-1 opacity-60'
+                                        : 'hover:ring-2 hover:ring-green-400/50'
+                                      : ''
+                                  }`}
+                                  onClick={() => {
+                                    if (duplicateSelection.selectMode) {
+                                      duplicateSelection.toggleItem(item.id);
+                                    }
+                                  }}
+                                  onPointerDown={() => duplicateSelection.onPointerDown(item.id)}
+                                  onPointerUp={duplicateSelection.onPointerUp}
+                                >
+                                  <ThumbTile item={item} api={api} />
+                                  {duplicateSelection.selectMode && (
+                                    <div className={`absolute top-1.5 left-1.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                      isSel ? 'bg-red-400 border-red-400 text-white' : 'bg-black/30 border-white'
+                                    }`}>
+                                      {isSel && <span className="text-[10px] leading-none">✓</span>}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
+                  </div>
+                )}
+
+                {duplicateSelection.selectMode && (
+                  <div className="fixed bottom-14 left-0 right-0 z-[60] flex justify-center items-center py-3 px-4 bg-white/95 backdrop-blur-md border-t border-misty md:ml-14">
+                    <button
+                      onClick={handleDuplicateBatchDelete}
+                      disabled={duplicateSelection.selectedIds.size === 0}
+                      className="flex flex-col items-center gap-1 text-sm text-text hover:text-red-500 transition-colors disabled:opacity-30"
+                    >
+                      <span className="text-xl">🗑️</span>
+                      <span className="text-[10px]">删除选中 ({duplicateSelection.selectedIds.size})</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -363,6 +452,28 @@ export default function SettingsPage() {
             <StatRow label="视频" value={String(stats.video_count)} />
             <StatRow label="数据库大小" value={formatBytes(stats.db_size_bytes)} />
             <StatRow label="上次扫描" value={stats.last_scan_time?.slice(0, 10) || '从未'} />
+            {serverInfo?.gpu && (
+              <>
+                <div className="border-t border-misty my-2" />
+                <div className="flex items-center gap-2 py-1">
+                  <span className={`w-2 h-2 rounded-full ${serverInfo.gpu.cuda_available ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                  <span className="text-sm text-text">
+                    {serverInfo.gpu.cuda_available
+                      ? `GPU: ${serverInfo.gpu.device_name || 'CUDA 可用'}`
+                      : 'GPU: 不可用 (CPU 模式)'}
+                  </span>
+                </div>
+                {serverInfo.gpu.cuda_available && serverInfo.gpu.memory_total_gb && (
+                  <StatRow
+                    label="显存"
+                    value={`${serverInfo.gpu.memory_used_gb ?? 0} GB / ${serverInfo.gpu.memory_total_gb} GB`}
+                  />
+                )}
+                {serverInfo.models.clip_loaded && (
+                  <StatRow label="Chinese-CLIP" value={`${serverInfo.models.clip_device} 模式`} />
+                )}
+              </>
+            )}
           </div>
         ) : (
           <p className="text-text-light text-sm">无法加载系统信息</p>
