@@ -1,12 +1,13 @@
 # backend/app/scanner/thumbnail.py
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 def generate_thumbnail(
     filepath: str, thumb_dir: str, source_root: str, size: int = 300
 ) -> str:
     img = Image.open(filepath)
+    img = ImageOps.exif_transpose(img)
     img.thumbnail((size, size))
 
     rel_path = os.path.relpath(filepath, source_root)

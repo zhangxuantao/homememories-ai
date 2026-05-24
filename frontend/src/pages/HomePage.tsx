@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useOnThisDay, useRandomMedia } from '../hooks/useMedia';
-import MemoryCard from '../components/cards/MemoryCard';
 import { api } from '../api/client';
 
 const today = new Date();
@@ -12,18 +11,20 @@ export default function HomePage() {
   const onThisDay = useOnThisDay(today.getMonth() + 1, today.getDate());
   const randomFirst = useRandomMedia(4);
   const randomSecond = useRandomMedia(4);
-
   const randomItems = useMemo(() => {
     const ids = new Set<number>();
     const combined = [...(randomFirst.data || []), ...(randomSecond.data || [])];
-    return combined.filter((item) => {
-      if (ids.has(item.id)) return false;
-      ids.add(item.id);
-      return true;
-    }).slice(0, 4);
+    return combined
+      .filter((item) => {
+        if (ids.has(item.id)) return false;
+        ids.add(item.id);
+        return true;
+      })
+      .slice(0, 4);
   }, [randomFirst.data, randomSecond.data]);
 
-  const hasOnThisDay = onThisDay.data && onThisDay.data.length > 0;
+  const onThisDayItems = onThisDay.data || [];
+  const hasOnThisDay = onThisDayItems.length > 0;
   const hasRandom = randomItems.length > 0;
   const isEmpty = !hasOnThisDay && !hasRandom && !onThisDay.loading && !randomFirst.loading;
 
@@ -53,48 +54,82 @@ export default function HomePage() {
         家庭回忆
       </motion.h1>
 
-      {/* Section 1: 去年今天 */}
+      {/* Section 1: 去年今天 — horizontal swipe, one large image at a time */}
       {hasOnThisDay && (
         <section className="mb-8">
           <h2 className="text-base font-semibold text-text mb-3">去年今天</h2>
-          {onThisDay.data!.slice(0, 3).map((item, i) => (
-            <MemoryCard
-              key={item.id}
-              item={item}
-              variant="hero"
-              index={i}
-              title={item.date_taken?.slice(0, 10)}
-              subtitle={item.filename}
-              onClick={() => navigate(`/photo/${item.id}`, { state: { from: '/' } })}
-            />
-          ))}
+          <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none -mx-4 px-4">
+            {onThisDayItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex-shrink-0 w-full snap-center pr-2 last:pr-0 cursor-pointer"
+                onClick={() => navigate(`/photo/${item.id}`, { state: { from: '/' } })}
+              >
+                <div className="rounded-card overflow-hidden bg-misty aspect-[4/3]">
+                  {item.thumbnail_path ? (
+                    <img
+                      src={api.thumbUrl(item.thumbnail_path)}
+                      alt={item.filename}
+                      className="w-full h-full object-contain bg-black/5"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-4xl">📷</div>
+                  )}
+                </div>
+                <p className="text-xs text-text-light mt-1.5 truncate">
+                  {item.date_taken?.slice(0, 10)} · {item.filename}
+                </p>
+              </div>
+            ))}
+
+          </div>
+
+          {onThisDayItems.length > 1 && (
+            <div className="flex justify-center gap-1.5 mt-3">
+              {onThisDayItems.map((_, i) => (
+                <span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-misty data-[active]:bg-primary"
+                />
+              ))}
+            </div>
+          )}
         </section>
       )}
 
-      {/* Section 2: 随机回忆 */}
+      {/* Section 2: 随机回忆 — small thumbnail grid */}
       {hasRandom && (
         <section className="mb-8">
           <h2 className="text-base font-semibold text-text mb-3">随机回忆</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {randomItems.map((item, i) => (
-              <MemoryCard
+          <div className="grid grid-cols-2 gap-2">
+            {randomItems.map((item) => (
+              <div
                 key={item.id}
-                item={item}
-                index={i}
-                title={item.date_taken?.slice(0, 10)}
-                subtitle={item.filename}
+                className="aspect-square rounded-card overflow-hidden bg-misty cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => navigate(`/photo/${item.id}`, { state: { from: '/' } })}
-              />
+              >
+                {item.thumbnail_path ? (
+                  <img
+                    src={api.thumbUrl(item.thumbnail_path)}
+                    alt={item.filename}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-2xl">📷</div>
+                )}
+              </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* Section 3: 最近添加 */}
+      {/* Section 3: 最近添加 — horizontal strip */}
       {hasRandom && (
         <section>
           <h2 className="text-base font-semibold text-text mb-3">最近添加</h2>
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
             {[...randomItems].reverse().slice(0, 10).map((item) => (
               <div
                 key={item.id}
