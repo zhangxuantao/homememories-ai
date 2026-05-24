@@ -10,6 +10,7 @@ const SearchPage = lazy(() => import('./pages/SearchPage'));
 const PeoplePage = lazy(() => import('./pages/PeoplePage'));
 const PhotoDetail = lazy(() => import('./pages/PhotoDetail'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const FavoritesPage = lazy(() => import('./pages/FavoritesPage'));
 
 function PageLoader() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
               <Route path="/search" element={<AnimatedPage><SearchPage /></AnimatedPage>} />
               <Route path="/people" element={<AnimatedPage><PeoplePage /></AnimatedPage>} />
               <Route path="/photo/:id" element={<PhotoDetail />} />
+              <Route path="/favorites" element={<AnimatedPage><FavoritesPage /></AnimatedPage>} />
               <Route path="/settings" element={<AnimatedPage><SettingsPage /></AnimatedPage>} />
             </Routes>
           </Suspense>

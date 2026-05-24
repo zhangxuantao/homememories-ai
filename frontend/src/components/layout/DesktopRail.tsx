@@ -5,6 +5,7 @@ import UploadPanel from '../../UploadPanel';
 const TABS = [
   { to: '/', label: '首页', icon: '🏠' },
   { to: '/timeline', label: '时间线', icon: '📅' },
+  { to: '/favorites', label: '收藏', icon: '❤️' },
   { to: '/search', label: '搜索', icon: '🔍' },
   { to: '/people', label: '人物', icon: '👤' },
   { to: '/settings', label: '设置', icon: '⚙️' },

@@ -5,6 +5,7 @@ import UploadPanel from '../../UploadPanel';
 const TABS = [
   { to: '/', label: '首页', icon: '🏠' },
   { to: '/timeline', label: '时间线', icon: '📅' },
+  { to: '/favorites', label: '收藏', icon: '❤️' },
   { to: '/search', label: '搜索', icon: '🔍' },
   { to: '/people', label: '人物', icon: '👤' },
   { to: '/settings', label: '设置', icon: '⚙️' },
@@ -16,7 +17,7 @@ export default function MobileNav() {
   return (
     <>
       {/* Bottom nav bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 grid grid-cols-5 items-end h-14 bg-white/90 backdrop-blur-xl border-t border-misty pb-1">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 grid grid-cols-6 items-end h-14 bg-white/90 backdrop-blur-xl border-t border-misty pb-1">
         {TABS.map((tab) => (
           <NavLink
             key={tab.to}
