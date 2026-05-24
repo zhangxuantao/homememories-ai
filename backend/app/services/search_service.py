@@ -171,6 +171,12 @@ def rebuild_index(db_path: str | None = None) -> None:
     faiss_dir = settings.faiss_dir
     index.save(faiss_dir)
 
+    # Clear search cache since the index has changed
+    conn = get_connection(db_path)
+    conn.execute("DELETE FROM search_cache")
+    conn.commit()
+    conn.close()
+
     # Update module-level cache
     _search_index = index
     _search_index_db_path = db_path or settings.db_path
@@ -204,7 +210,10 @@ def _lookup_cache(query_hash: str, db_path: str | None = None) -> list[int] | No
         return None
 
     try:
-        return json.loads(row["result_ids"])
+        result_ids = json.loads(row["result_ids"])
+        if not result_ids:
+            return None  # Don't serve empty cached results
+        return result_ids
     except (json.JSONDecodeError, TypeError):
         return None
 
@@ -212,6 +221,8 @@ def _lookup_cache(query_hash: str, db_path: str | None = None) -> list[int] | No
 def _store_cache(query_hash: str, query_text: str, result_ids: list[int],
                  db_path: str | None = None) -> None:
     """Store search results in cache, replacing any existing entry."""
+    if not result_ids:
+        return  # Don't cache empty results
     conn = get_connection(db_path)
     now = datetime.now(timezone.utc).isoformat()
     conn.execute(
