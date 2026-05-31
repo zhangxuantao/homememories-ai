@@ -44,6 +44,7 @@ def create_app() -> FastAPI:
     from app.routers.albums import router as albums_router
     from app.routers import favorites
     from app.routers import shares
+    from app.routers import import_photos
 
     app.include_router(timeline_router)
     app.include_router(media_router)
@@ -55,6 +56,7 @@ def create_app() -> FastAPI:
     app.include_router(favorites.router)
     app.include_router(shares.router)
     app.include_router(shares.public_router)
+    app.include_router(import_photos.router)
 
     # Ensure directories exist before mounting static files
     os.makedirs(settings.media_root, exist_ok=True)
