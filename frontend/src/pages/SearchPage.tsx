@@ -8,6 +8,7 @@ import PhotoGrid from '../components/gallery/PhotoGrid';
 import SelectionBar from '../components/gallery/SelectionBar';
 import SelectionActions from '../components/gallery/SelectionActions';
 import { api } from '../api/client';
+import AlbumPickerSheet from '../components/albums/AlbumPickerSheet';
 
 type SearchMode = 'text' | 'image';
 
@@ -17,6 +18,9 @@ export default function SearchPage() {
   const textSearch = useTextSearch();
   const imageSearch = useImageSearch();
   const selection = useSelection();
+
+  const [albumPickerOpen, setAlbumPickerOpen] = useState(false);
+  const [pendingAlbumIds, setPendingAlbumIds] = useState<number[]>([]);
 
   const recentSearches: string[] = JSON.parse(localStorage.getItem('recentSearches') || '[]');
 
@@ -57,25 +61,10 @@ export default function SearchPage() {
     selection.exitSelectMode();
   };
 
-  const handleAddToAlbum = async () => {
-    try {
-      const albums = await api.get<{id: number; name: string}[]>('/api/albums');
-      const name = prompt('输入相册名称（已有相册：' + albums.map(a => a.name).join('、') + '）或新建:');
-      if (!name) return;
-
-      let albumId = albums.find(a => a.name === name)?.id;
-      if (!albumId) {
-        const created = await api.post<{id: number}>('/api/albums', { name });
-        albumId = created.id;
-      }
-
-      const ids = Array.from(selection.selectedIds);
-      await api.post(`/api/albums/${albumId}/media`, { media_ids: ids });
-      alert(`已加入 ${ids.length} 张到「${name}」`);
-    } catch (err) {
-      alert('操作失败: ' + (err as Error).message);
-    }
-    selection.exitSelectMode();
+  const handleAddToAlbum = () => {
+    const ids = Array.from(selection.selectedIds);
+    setPendingAlbumIds(ids);
+    setAlbumPickerOpen(true);
   };
 
   return (
@@ -159,6 +148,13 @@ export default function SearchPage() {
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       )}
+
+      <AlbumPickerSheet
+        open={albumPickerOpen}
+        onClose={() => setAlbumPickerOpen(false)}
+        mediaIds={pendingAlbumIds}
+        onDone={() => selection.exitSelectMode()}
+      />
     </div>
   );
 }

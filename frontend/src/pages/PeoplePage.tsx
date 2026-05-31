@@ -6,6 +6,7 @@ import PhotoGrid from '../components/gallery/PhotoGrid';
 import { useSelection } from '../hooks/useSelection';
 import SelectionBar from '../components/gallery/SelectionBar';
 import SelectionActions from '../components/gallery/SelectionActions';
+import AlbumPickerSheet from '../components/albums/AlbumPickerSheet';
 
 export default function PeoplePage() {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ export default function PeoplePage() {
   const [selectedCluster, setSelectedCluster] = useState<FaceCluster | null>(null);
   const [clusterMedia, setClusterMedia] = useState<MediaItem[]>([]);
   const selection = useSelection();
+  const [albumPickerOpen, setAlbumPickerOpen] = useState(false);
+  const [pendingAlbumIds, setPendingAlbumIds] = useState<number[]>([]);
 
   useEffect(() => {
     api.get<FaceCluster[]>('/api/faces/clusters')
@@ -117,7 +120,11 @@ export default function PeoplePage() {
                     onExit={selection.exitSelectMode}
                   />
                   <SelectionActions
-                    onAddToAlbum={() => {}}
+                    onAddToAlbum={() => {
+                      const ids = Array.from(selection.selectedIds);
+                      setPendingAlbumIds(ids);
+                      setAlbumPickerOpen(true);
+                    }}
                     onDownload={handleBatchDownload}
                     onDelete={handleBatchDelete}
                   />
@@ -148,6 +155,13 @@ export default function PeoplePage() {
           ))}
         </div>
       )}
+
+      <AlbumPickerSheet
+        open={albumPickerOpen}
+        onClose={() => setAlbumPickerOpen(false)}
+        mediaIds={pendingAlbumIds}
+        onDone={() => selection.exitSelectMode()}
+      />
     </div>
   );
 }
