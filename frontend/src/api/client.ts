@@ -68,6 +68,16 @@ export interface FaceCluster {
   cover_thumbnail: string | null;
 }
 
+export interface Album {
+  id: number;
+  name: string;
+  cover_media_id: number | null;
+  cover_thumbnail: string | null;
+  media_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface GpuInfo {
   cuda_available: boolean;
   device_name: string | null;
@@ -226,6 +236,41 @@ class ApiClient {
 
   async deleteDuplicateMedia(keepId: number, deleteIds: number[]): Promise<{ deleted: number }> {
     return this.delete<{ deleted: number }>('/api/admin/cleanup/duplicates', { keep_id: keepId, delete_ids: deleteIds });
+  }
+
+  // ── Albums ──
+
+  async listAlbums(): Promise<Album[]> {
+    return this.get<Album[]>('/api/albums');
+  }
+
+  async createAlbum(name: string): Promise<Album> {
+    return this.post<Album>('/api/albums', { name });
+  }
+
+  async getAlbum(id: number): Promise<Album> {
+    return this.get<Album>(`/api/albums/${id}`);
+  }
+
+  async updateAlbum(id: number, data: { name?: string; cover_media_id?: number }): Promise<Album> {
+    return this.patch<Album>(`/api/albums/${id}`, data);
+  }
+
+  async deleteAlbum(id: number): Promise<{ deleted: number }> {
+    return this.delete<{ deleted: number }>(`/api/albums/${id}`);
+  }
+
+  async getAlbumMedia(id: number, limit?: number): Promise<MediaItem[]> {
+    return this.get<{ items: MediaItem[] }>(`/api/albums/${id}/media`, { limit })
+      .then(r => r.items);
+  }
+
+  async addToAlbum(albumId: number, mediaIds: number[]): Promise<{ added: number }> {
+    return this.post<{ added: number }>(`/api/albums/${albumId}/media`, { media_ids: mediaIds });
+  }
+
+  async removeFromAlbum(albumId: number, mediaIds: number[]): Promise<{ deleted: number }> {
+    return this.delete<{ deleted: number }>(`/api/albums/${albumId}/media`, mediaIds);
   }
 }
 
