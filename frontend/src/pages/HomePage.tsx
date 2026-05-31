@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useOnThisDay, useRandomMedia } from '../hooks/useMedia';
-import { api } from '../api/client';
+import { api, MediaItem } from '../api/client';
 import { useRecentFavorites } from '../hooks/useFavorites';
 
 const today = new Date();
@@ -25,6 +25,14 @@ export default function HomePage() {
   }, [randomFirst.data, randomSecond.data]);
 
   const { items: recentFavs } = useRecentFavorites(6);
+
+  const [curated, setCurated] = useState<MediaItem[]>([]);
+  useEffect(() => {
+    const month = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    api.getCuration(month)
+      .then(data => setCurated(data.items || []))
+      .catch(() => setCurated([]));
+  }, []);
 
   const onThisDayItems = onThisDay.data || [];
   const hasOnThisDay = onThisDayItems.length > 0;
@@ -155,6 +163,41 @@ export default function HomePage() {
               <div
                 key={item.id}
                 className="flex-shrink-0 w-20 h-20 rounded-card overflow-hidden bg-misty cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => navigate(`/photo/${item.id}`, { state: { from: '/' } })}
+              >
+                {item.thumbnail_path ? (
+                  <img
+                    src={api.thumbUrl(item.thumbnail_path)}
+                    alt={item.filename}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-2xl">📷</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 本月精选 */}
+      {curated.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-base font-semibold text-text mb-3 flex justify-between items-center">
+            <span>✨ 本月精选</span>
+            <button
+              onClick={() => navigate('/curated')}
+              className="text-xs text-primary font-normal hover:underline"
+            >
+              查看全部 →
+            </button>
+          </h2>
+          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+            {curated.slice(0, 10).map((item) => (
+              <div
+                key={item.id}
+                className="flex-shrink-0 w-24 h-24 rounded-card overflow-hidden bg-misty cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => navigate(`/photo/${item.id}`, { state: { from: '/' } })}
               >
                 {item.thumbnail_path ? (

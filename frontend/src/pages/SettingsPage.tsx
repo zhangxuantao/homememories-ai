@@ -257,6 +257,25 @@ export default function SettingsPage() {
           <ActionButton label="生成 Embeddings" onClick={generateEmbeddings} />
           <ActionButton label="人脸检测" onClick={startFaceDetection} />
           <ActionButton label="人脸聚类" onClick={() => startClustering(false)} />
+          <div className="glass-card rounded-card p-3 text-sm mt-3">
+            <p className="text-sm text-text-light mb-2">基于清晰度、人脸和事件自动评选月度精选照片</p>
+            <button
+              onClick={async () => {
+                setImportStatus({ status: 'running', progress: 0, job_id: '', error: null });
+                try {
+                  const result = await api.generateCuration();
+                  alert(`精选集生成完成！${result.month} 月共 ${result.count} 张精选照片`);
+                  setImportStatus({ status: 'completed', progress: 100, job_id: '', error: null });
+                } catch (err) {
+                  alert('生成失败: ' + (err as Error).message);
+                  setImportStatus({ status: 'failed', progress: 0, job_id: '', error: (err as Error).message });
+                }
+              }}
+              className="px-4 py-2 bg-primary text-white rounded-btn text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              生成精选集
+            </button>
+          </div>
         </div>
       </Section>
 
