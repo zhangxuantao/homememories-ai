@@ -1,5 +1,6 @@
 # backend/app/routers/media.py
 import os
+import math
 import zipfile
 import io
 from fastapi import APIRouter, Query, HTTPException
@@ -103,3 +104,100 @@ def export_zip(ids: list[int]):
         media_type="application/zip",
         headers={"Content-Disposition": "attachment; filename=homememories_export.zip"},
     )
+
+
+from pydantic import BaseModel as PydanticModel
+
+class CollageRequest(PydanticModel):
+    media_ids: list[int]
+    layout: str = "grid"
+
+
+@router.post("/collage")
+def create_collage(body: CollageRequest):
+    """Generate a photo collage from selected media."""
+    from app.database import get_connection
+    from app.config import settings
+    from PIL import Image
+    import io as io_module
+    import math as math_module
+
+    if not body.media_ids:
+        raise HTTPException(status_code=400, detail="至少选择一张照片")
+
+    if len(body.media_ids) > 9:
+        raise HTTPException(status_code=400, detail="最多选择9张照片")
+
+    conn = get_connection()
+    placeholders = ",".join("?" * len(body.media_ids))
+    rows = conn.execute(
+        f"SELECT id, path FROM media WHERE id IN ({placeholders})", body.media_ids
+    ).fetchall()
+    conn.close()
+
+    if len(rows) != len(body.media_ids):
+        raise HTTPException(status_code=404, detail="部分照片不存在")
+
+    # Load images
+    images = []
+    for row in rows:
+        path = row["path"]
+        if not os.path.isabs(path):
+            path = os.path.join(settings.media_root, path)
+        if os.path.exists(path):
+            img = Image.open(path).convert("RGB")
+            img.thumbnail((400, 400), Image.LANCZOS)
+            images.append(img)
+
+    if not images:
+        raise HTTPException(status_code=404, detail="无法加载任何照片")
+
+    layout = body.layout
+    n = len(images)
+
+    if layout == "horizontal":
+        h = min(img.height for img in images)
+        resized = []
+        for img in images:
+            ratio = h / img.height
+            new_w = int(img.width * ratio)
+            resized.append(img.resize((new_w, h), Image.LANCZOS))
+        total_w = sum(img.width for img in resized)
+        canvas = Image.new("RGB", (total_w, h), "white")
+        x = 0
+        for img in resized:
+            canvas.paste(img, (x, 0))
+            x += img.width
+
+    elif layout == "vertical":
+        w = min(img.width for img in images)
+        resized = []
+        for img in images:
+            ratio = w / img.width
+            new_h = int(img.height * ratio)
+            resized.append(img.resize((w, new_h), Image.LANCZOS))
+        total_h = sum(img.height for img in resized)
+        canvas = Image.new("RGB", (w, total_h), "white")
+        y = 0
+        for img in resized:
+            canvas.paste(img, (0, y))
+            y += img.height
+
+    else:  # grid
+        cols = math_module.ceil(math_module.sqrt(n))
+        rows_count = math_module.ceil(n / cols)
+        cell_w = min(img.width for img in images)
+        cell_h = min(img.height for img in images)
+
+        resized = [img.resize((cell_w, cell_h), Image.LANCZOS) for img in images]
+
+        canvas = Image.new("RGB", (cols * cell_w, rows_count * cell_h), "white")
+        for i, img in enumerate(resized):
+            r = i // cols
+            c = i % cols
+            canvas.paste(img, (c * cell_w, r * cell_h))
+
+    buf = io_module.BytesIO()
+    canvas.save(buf, format="JPEG", quality=90)
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="image/jpeg")
