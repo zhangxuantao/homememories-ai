@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminStats, useJobStatus, useAdminActions } from '../hooks/useAdmin';
-import { api, MediaItem, ServerInfo } from '../api/client';
+import { api, MediaItem, ServerInfo, JobStatus } from '../api/client';
 import QrCode from '../components/ui/QrCode';
 import PhotoGrid from '../components/gallery/PhotoGrid';
 import { useSelection } from '../hooks/useSelection';
@@ -72,6 +72,7 @@ export default function SettingsPage() {
   const { currentJobId, startScan, generateEmbeddings, startFaceDetection, startProcessAll, startBlurCheck, startDuplicateCheck, startClustering, fetchBlurryMedia, fetchDuplicatePairs, deleteBlurryMedia } = useAdminActions();
   const { status: jobStatus } = useJobStatus(currentJobId);
   const [scanPath, setScanPath] = useState('');
+  const [importStatus, setImportStatus] = useState<JobStatus | null>(null);
 
   // Cleanup results state
   const [blurryItems, setBlurryItems] = useState<MediaItem[] | null>(null);
@@ -481,6 +482,93 @@ export default function SettingsPage() {
         <button onClick={refreshStats} className="mt-2 text-sm text-primary hover:underline">
           刷新统计
         </button>
+      </Section>
+
+      {/* 外部导入 */}
+      <Section title="外部导入">
+        {/* Google Takeout */}
+        <div className="mb-4">
+          <h4 className="text-sm font-medium text-text mb-1">Google Takeout</h4>
+          <p className="text-xs text-text-light mb-2">
+            从 Google Takeout 导出的 .zip 文件导入照片
+          </p>
+          <input
+            type="file"
+            accept=".zip"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const formData = new FormData();
+              formData.append('file', file);
+              try {
+                setImportStatus({ status: 'running', progress: 0, job_id: '', error: null });
+                const res = await fetch(`${window.location.origin}/api/import/takeout`, {
+                  method: 'POST',
+                  body: formData,
+                });
+                const data = await res.json();
+                if (res.ok) {
+                  alert(`导入成功！已导入 ${data.imported} 张照片到 ${data.destination}`);
+                  setImportStatus({ status: 'completed', progress: 100, job_id: '', error: null });
+                } else {
+                  throw new Error(data.detail);
+                }
+              } catch (err) {
+                alert('导入失败: ' + (err as Error).message);
+                setImportStatus({ status: 'failed', progress: 0, job_id: '', error: (err as Error).message });
+              }
+              e.target.value = '';
+            }}
+            className="block w-full text-sm text-text-light file:mr-3 file:py-1.5 file:px-4 file:rounded-btn file:border-0 file:text-sm file:font-medium file:bg-primary file:text-white hover:file:opacity-90 file:cursor-pointer"
+          />
+          {importStatus?.status === 'running' && (
+            <div className="glass-card rounded-card p-3 text-sm mt-2">
+              导入中...
+              {importStatus.progress > 0 && <span> {Math.round(importStatus.progress)}%</span>}
+            </div>
+          )}
+        </div>
+
+        {/* iCloud */}
+        <div>
+          <h4 className="text-sm font-medium text-text mb-1">iCloud 照片</h4>
+          <p className="text-xs text-text-light mb-2">
+            从 iCloud 导出的照片目录一键迁移
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="输入 iCloud 照片目录路径，如 D:\iCloud Photos"
+              className="flex-1 px-3 py-2 border border-misty rounded-btn text-sm outline-none focus:border-primary"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const path = (e.target as HTMLInputElement).value.trim();
+                  if (!path) return;
+                  setImportStatus({ status: 'running', progress: 0, job_id: '', error: null });
+                  fetch(`${window.location.origin}/api/import/icloud`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source_dir: path }),
+                  })
+                    .then(res => res.json().then(data => ({ ok: res.ok, data })))
+                    .then(({ ok, data }) => {
+                      if (ok) {
+                        alert(`导入成功！已导入 ${data.imported} 张照片`);
+                        setImportStatus({ status: 'completed', progress: 100, job_id: '', error: null });
+                      } else {
+                        throw new Error(data.detail);
+                      }
+                    })
+                    .catch(err => {
+                      alert('导入失败: ' + (err as Error).message);
+                      setImportStatus({ status: 'failed', progress: 0, job_id: '', error: (err as Error).message });
+                    });
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }}
+            />
+          </div>
+        </div>
       </Section>
     </div>
   );
