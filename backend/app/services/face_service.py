@@ -91,7 +91,7 @@ def start_face_detection(db_path: str | None = None) -> str:
             # ── Run clustering after detection ──
             from app.services.cluster_service import run_clustering
 
-            clusters = run_clustering(db_path=db_path)
+            clusters = run_clustering(db_path=db_path, reset=True)
 
             tracker.update(
                 job_id,

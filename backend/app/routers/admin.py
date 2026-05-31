@@ -122,7 +122,7 @@ def start_face_detection_endpoint():
 
 
 @router.post("/faces/cluster")
-def start_clustering_endpoint(reset: bool = Query(False)):
+def start_clustering_endpoint(reset: bool = Query(True)):
     job_id = start_clustering_job(reset=reset)
     return get_job_status(job_id).model_dump()
 
