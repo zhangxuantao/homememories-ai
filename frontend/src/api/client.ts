@@ -78,6 +78,16 @@ export interface Album {
   updated_at: string;
 }
 
+export interface ShareItem {
+  id: number;
+  token: string;
+  title: string | null;
+  media_ids: number[];
+  expires_at: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface GpuInfo {
   cuda_available: boolean;
   device_name: string | null;
@@ -271,6 +281,41 @@ class ApiClient {
 
   async removeFromAlbum(albumId: number, mediaIds: number[]): Promise<{ deleted: number }> {
     return this.delete<{ deleted: number }>(`/api/albums/${albumId}/media`, mediaIds);
+  }
+
+  // ── Shares ──
+
+  async createShare(mediaIds: number[], title?: string, expiresInHours?: number): Promise<{ token: string; url: string }> {
+    return this.post<{ token: string; url: string }>('/api/shares', {
+      media_ids: mediaIds,
+      title,
+      expires_in_hours: expiresInHours,
+    });
+  }
+
+  async listShares(): Promise<ShareItem[]> {
+    return this.get<ShareItem[]>('/api/shares');
+  }
+
+  async revokeShare(id: number): Promise<{ revoked: number }> {
+    return this.delete<{ revoked: number }>(`/api/shares/${id}`);
+  }
+
+  async getSharedMedia(token: string): Promise<{ title: string | null; expires_at: string | null; created_at: string; media: MediaItem[] }> {
+    return this.get<{ title: string | null; expires_at: string | null; created_at: string; media: MediaItem[] }>(`/api/share/${token}`);
+  }
+
+  // ── Collage ──
+
+  async createCollage(mediaIds: number[], layout: string = 'grid'): Promise<Blob> {
+    const url = (this as any).baseUrl || window.location.origin;
+    const res = await fetch(`${url}/api/media/collage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ media_ids: mediaIds, layout }),
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.blob();
   }
 }
 

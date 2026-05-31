@@ -13,6 +13,7 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage'));
 const AlbumsPage = lazy(() => import('./pages/AlbumsPage'));
 const AlbumDetailPage = lazy(() => import('./pages/AlbumDetailPage'));
+const ShareViewPage = lazy(() => import('./pages/ShareViewPage'));
 
 function PageLoader() {
   return (
@@ -61,6 +62,7 @@ export default function App() {
               <Route path="/settings" element={<AnimatedPage><SettingsPage /></AnimatedPage>} />
               <Route path="/albums" element={<AnimatedPage><AlbumsPage /></AnimatedPage>} />
               <Route path="/albums/:id" element={<AlbumDetailPage />} />
+              <Route path="/share/:token" element={<ShareViewPage />} />
             </Routes>
           </Suspense>
         </AnimatePresence>
