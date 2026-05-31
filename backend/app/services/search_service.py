@@ -259,6 +259,25 @@ def search_by_text(query: str, limit: int = 20, cursor: int = 0,
         # Cache the result
         _store_cache(query_hash, query, result_ids, db_path)
 
+    # ── Face cluster label matching (hybrid search) ──
+    conn = get_connection(db_path)
+    matched_clusters = conn.execute(
+        "SELECT id FROM face_clusters WHERE label LIKE ?",
+        (f"%{query}%",),
+    ).fetchall()
+    if matched_clusters:
+        cluster_ids = [r["id"] for r in matched_clusters]
+        placeholders = ",".join("?" * len(cluster_ids))
+        face_rows = conn.execute(
+            f"SELECT DISTINCT media_id FROM faces WHERE cluster_id IN ({placeholders})",
+            cluster_ids,
+        ).fetchall()
+        # Prepend face-matched media to top of results
+        face_ids = [r["media_id"] for r in face_rows]
+        seen = set(result_ids)
+        result_ids = face_ids + [mid for mid in result_ids if mid not in seen]
+    conn.close()
+
     # Paginate
     total = len(result_ids)
     page_ids = result_ids[cursor:cursor + limit]
