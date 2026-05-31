@@ -9,6 +9,8 @@ import SelectionBar from '../components/gallery/SelectionBar';
 import SelectionActions from '../components/gallery/SelectionActions';
 import { api } from '../api/client';
 import AlbumPickerSheet from '../components/albums/AlbumPickerSheet';
+import SharePanel from '../components/share/SharePanel';
+import CollagePanel from '../components/share/CollagePanel';
 
 type SearchMode = 'text' | 'image';
 
@@ -21,6 +23,10 @@ export default function SearchPage() {
 
   const [albumPickerOpen, setAlbumPickerOpen] = useState(false);
   const [pendingAlbumIds, setPendingAlbumIds] = useState<number[]>([]);
+
+  const [shareOpen, setShareOpen] = useState(false);
+  const [collageOpen, setCollageOpen] = useState(false);
+  const [pendingActionIds, setPendingActionIds] = useState<number[]>([]);
 
   const recentSearches: string[] = JSON.parse(localStorage.getItem('recentSearches') || '[]');
 
@@ -65,6 +71,22 @@ export default function SearchPage() {
     const ids = Array.from(selection.selectedIds);
     setPendingAlbumIds(ids);
     setAlbumPickerOpen(true);
+  };
+
+  const handleShare = () => {
+    const ids = Array.from(selection.selectedIds);
+    setPendingActionIds(ids);
+    setShareOpen(true);
+  };
+
+  const handleCollage = () => {
+    const ids = Array.from(selection.selectedIds);
+    if (ids.length < 2 || ids.length > 9) {
+      alert('拼图需要选择 2-9 张照片');
+      return;
+    }
+    setPendingActionIds(ids);
+    setCollageOpen(true);
   };
 
   return (
@@ -130,6 +152,8 @@ export default function SearchPage() {
               />
               <SelectionActions
                 onAddToAlbum={handleAddToAlbum}
+                onShare={handleShare}
+                onCollage={handleCollage}
                 onDownload={handleBatchDownload}
                 onDelete={handleBatchDelete}
               />
@@ -155,6 +179,9 @@ export default function SearchPage() {
         mediaIds={pendingAlbumIds}
         onDone={() => selection.exitSelectMode()}
       />
+
+      <SharePanel open={shareOpen} onClose={() => setShareOpen(false)} mediaIds={pendingActionIds} />
+      <CollagePanel open={collageOpen} onClose={() => setCollageOpen(false)} mediaIds={pendingActionIds} />
     </div>
   );
 }
