@@ -113,6 +113,18 @@ CREATE INDEX IF NOT EXISTS idx_faces_cluster ON faces(cluster_id);
 CREATE INDEX IF NOT EXISTS idx_faces_media ON faces(media_id);
 CREATE INDEX IF NOT EXISTS idx_event_media_event ON event_media(event_id);
 CREATE INDEX IF NOT EXISTS idx_favorites_created ON favorites(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS shares (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token TEXT UNIQUE NOT NULL,
+    title TEXT,
+    media_ids TEXT NOT NULL,
+    expires_at TEXT,
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_shares_token ON shares(token);
 """
 
 
