@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useOnThisDay, useRandomMedia } from '../hooks/useMedia';
 import { api } from '../api/client';
@@ -50,13 +50,22 @@ export default function HomePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 md:py-8">
-      <motion.h1
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-2xl font-bold text-text mb-6"
-      >
-        家庭回忆
-      </motion.h1>
+        <div className="flex justify-between items-center mb-6">
+          <motion.h1
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-2xl font-bold text-text"
+          >
+            家庭回忆
+          </motion.h1>
+          <Link
+            to="/settings"
+            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-misty transition-colors text-lg"
+            title="设置"
+          >
+            ⚙️
+          </Link>
+        </div>
 
       {/* Section 1: 去年今天 — horizontal swipe, one large image at a time */}
       {hasOnThisDay && (
