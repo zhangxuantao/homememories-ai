@@ -125,6 +125,18 @@ CREATE TABLE IF NOT EXISTS shares (
 );
 
 CREATE INDEX IF NOT EXISTS idx_shares_token ON shares(token);
+
+CREATE TABLE IF NOT EXISTS curated_photos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    media_id INTEGER UNIQUE,
+    month TEXT NOT NULL,
+    score REAL NOT NULL,
+    rank INTEGER NOT NULL,
+    generated_at TEXT NOT NULL,
+    FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_curated_month ON curated_photos(month);
 """
 
 

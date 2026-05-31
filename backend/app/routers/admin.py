@@ -190,3 +190,26 @@ def server_info():
         "gpu": gpu,
         "models": models,
     }
+
+
+class CurateRequest(BaseModel):
+    month: str | None = None
+
+
+@router.post("/curate/generate")
+def generate_curation_ep(body: CurateRequest = CurateRequest()):
+    from datetime import datetime
+    from app.services.curation_service import generate_curation as do_curate
+
+    month = body.month if body.month else datetime.now().strftime("%Y-%m")
+    return do_curate(month)
+
+
+@router.get("/curate")
+def get_curation_ep(month: str | None = None):
+    from datetime import datetime
+    from app.services.curation_service import get_curation as fetch_curation
+
+    if not month:
+        month = datetime.now().strftime("%Y-%m")
+    return fetch_curation(month)
