@@ -11,6 +11,7 @@ const PeoplePage = lazy(() => import('./pages/PeoplePage'));
 const PhotoDetail = lazy(() => import('./pages/PhotoDetail'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage'));
+const AlbumsPage = lazy(() => import('./pages/AlbumsPage'));
 
 function PageLoader() {
   return (
@@ -57,6 +58,7 @@ export default function App() {
               <Route path="/photo/:id" element={<PhotoDetail />} />
               <Route path="/favorites" element={<AnimatedPage><FavoritesPage /></AnimatedPage>} />
               <Route path="/settings" element={<AnimatedPage><SettingsPage /></AnimatedPage>} />
+              <Route path="/albums" element={<AnimatedPage><AlbumsPage /></AnimatedPage>} />
             </Routes>
           </Suspense>
         </AnimatePresence>

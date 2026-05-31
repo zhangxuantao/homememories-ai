@@ -8,7 +8,7 @@ const TABS = [
   { to: '/favorites', label: '收藏', icon: '❤️' },
   { to: '/search', label: '搜索', icon: '🔍' },
   { to: '/people', label: '人物', icon: '👤' },
-  { to: '/settings', label: '设置', icon: '⚙️' },
+  { to: '/albums', label: '相册', icon: '📁' },
 ];
 
 export default function DesktopRail() {
