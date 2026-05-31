@@ -317,6 +317,16 @@ class ApiClient {
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return res.blob();
   }
+
+  // ── Curation ──
+
+  async generateCuration(month?: string): Promise<{ month: string; count: number }> {
+    return this.post<{ month: string; count: number }>('/api/admin/curate/generate', month ? { month } : undefined);
+  }
+
+  async getCuration(month?: string): Promise<{ month: string; items: MediaItem[] }> {
+    return this.get<{ month: string; items: MediaItem[] }>('/api/admin/curate', { month });
+  }
 }
 
 export const api = new ApiClient(BASE_URL);

@@ -14,6 +14,7 @@ const FavoritesPage = lazy(() => import('./pages/FavoritesPage'));
 const AlbumsPage = lazy(() => import('./pages/AlbumsPage'));
 const AlbumDetailPage = lazy(() => import('./pages/AlbumDetailPage'));
 const ShareViewPage = lazy(() => import('./pages/ShareViewPage'));
+const CuratedPage = lazy(() => import('./pages/CuratedPage'));
 
 function PageLoader() {
   return (
@@ -63,6 +64,7 @@ export default function App() {
               <Route path="/albums" element={<AnimatedPage><AlbumsPage /></AnimatedPage>} />
               <Route path="/albums/:id" element={<AlbumDetailPage />} />
               <Route path="/share/:token" element={<ShareViewPage />} />
+              <Route path="/curated" element={<AnimatedPage><CuratedPage /></AnimatedPage>} />
             </Routes>
           </Suspense>
         </AnimatePresence>
