@@ -16,6 +16,11 @@ class AlbumAddMedia(BaseModel):
     media_ids: list[int]
 
 
+class AlbumPatch(BaseModel):
+    name: str | None = None
+    cover_media_id: int | None = None
+
+
 @router.get("")
 def list_albums():
     conn = get_connection()
@@ -113,3 +118,83 @@ def remove_media_from_album(album_id: int, media_ids: list[int]):
     conn.commit()
     conn.close()
     return {"deleted": len(media_ids)}
+
+
+@router.get("/{album_id}")
+def get_album(album_id: int):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT a.*, m.thumbnail_path, "
+        "(SELECT COUNT(*) FROM album_media WHERE album_id = a.id) AS media_count "
+        "FROM albums a LEFT JOIN media m ON a.cover_media_id = m.id "
+        "WHERE a.id = ?",
+        (album_id,),
+    ).fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="相册不存在")
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "cover_media_id": row["cover_media_id"],
+        "cover_thumbnail": row["thumbnail_path"],
+        "media_count": row["media_count"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+@router.patch("/{album_id}")
+def update_album(album_id: int, body: AlbumPatch):
+    conn = get_connection()
+    album = conn.execute("SELECT id FROM albums WHERE id = ?", (album_id,)).fetchone()
+    if not album:
+        conn.close()
+        raise HTTPException(status_code=404, detail="相册不存在")
+
+    now = datetime.now(timezone.utc).isoformat()
+    if body.name is not None:
+        conn.execute(
+            "UPDATE albums SET name = ?, updated_at = ? WHERE id = ?",
+            (body.name, now, album_id),
+        )
+    if body.cover_media_id is not None:
+        conn.execute(
+            "UPDATE albums SET cover_media_id = ?, updated_at = ? WHERE id = ?",
+            (body.cover_media_id, now, album_id),
+        )
+
+    conn.commit()
+
+    # Return updated album
+    row = conn.execute(
+        "SELECT a.*, m.thumbnail_path, "
+        "(SELECT COUNT(*) FROM album_media WHERE album_id = a.id) AS media_count "
+        "FROM albums a LEFT JOIN media m ON a.cover_media_id = m.id "
+        "WHERE a.id = ?",
+        (album_id,),
+    ).fetchone()
+    conn.close()
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "cover_media_id": row["cover_media_id"],
+        "cover_thumbnail": row["thumbnail_path"],
+        "media_count": row["media_count"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+@router.delete("/{album_id}")
+def delete_album(album_id: int):
+    conn = get_connection()
+    album = conn.execute("SELECT id FROM albums WHERE id = ?", (album_id,)).fetchone()
+    if not album:
+        conn.close()
+        raise HTTPException(status_code=404, detail="相册不存在")
+
+    conn.execute("DELETE FROM albums WHERE id = ?", (album_id,))
+    conn.commit()
+    conn.close()
+    return {"deleted": album_id}
